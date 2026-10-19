@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>JK CRED</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ===== 1. TOKENS ===== */
+:root{
+  color-scheme:light;
+  --navy:#0A1F44; --navy2:#12306B; --blue:#2F6BFF; --sky:#DCE8FF; --sky2:#EEF4FF;
+  --bg:#F3F6FB; --surface:#FFFFFF; --text:#0A1F44; --muted:#5B6B88; --line:#E2E8F2;
+  --danger:#D6334A; --warn:#B7791F;
+  --r:18px; --shadow:0 1px 2px rgba(10,31,68,.05),0 8px 24px rgba(10,31,68,.07);
+  --font:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+:root:not([data-theme="light"]){}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){color-scheme:dark;--bg:#07142E;--surface:#0E2247;--text:#EAF0FF;--muted:#9DB0D3;--line:#1D3566;--sky:#1B3A78;--sky2:#102A5A;--shadow:0 8px 24px rgba(0,0,0,.35)}
+}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#07142E;--surface:#0E2247;--text:#EAF0FF;--muted:#9DB0D3;--line:#1D3566;--sky:#1B3A78;--sky2:#102A5A;--shadow:0 8px 24px rgba(0,0,0,.35)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box;margin:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px;border-radius:10px}
+h1,h2,h3{line-height:1.2;letter-spacing:-.02em}
+svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* ===== 2. COMPONENTES ===== */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.6rem;font:600 .95rem var(--font);padding:.8rem 1.25rem;border-radius:14px;border:1.5px solid transparent;cursor:pointer;transition:transform .15s,background .15s,box-shadow .15s}
+.btn:active{transform:scale(.98)}
+.btn-primary{background:var(--blue);color:#fff;box-shadow:0 6px 16px rgba(47,107,255,.3)}
+.btn-primary:hover{background:#1F58E8}
+.btn-light{background:#fff;color:var(--navy)}
+.btn-light:hover{background:var(--sky)}
+.btn-ghost{background:transparent;color:var(--text);border-color:var(--line)}
+.btn-ghost:hover{background:var(--sky2)}
+.btn-wa{background:#1FA855;color:#fff}.btn-wa:hover{background:#188F47}
+.btn-block{width:100%}
+.card{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);padding:1.4rem;border:1px solid var(--line)}
+.card h3{font-size:.95rem;font-weight:700;color:var(--muted);display:flex;align-items:center;gap:.5rem}
+.stat{display:flex;flex-direction:column;gap:.7rem}
+.stat .ico{width:40px;height:40px;border-radius:12px;background:var(--sky);color:var(--blue);display:grid;place-items:center}
+.stat .val{font-size:1.9rem;font-weight:800}
+.stat .val.na{color:var(--muted);font-weight:700}
+.stat small,.muted{color:var(--muted);font-size:.85rem}
+.tag{display:inline-block;font-size:.72rem;font-weight:700;padding:.2rem .6rem;border-radius:99px;background:var(--sky);color:var(--blue)}
+.empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:.5rem;padding:1.6rem 1rem;color:var(--muted)}
+.empty .ring{width:52px;height:52px;border-radius:16px;background:var(--sky2);color:var(--blue);display:grid;place-items:center;margin-bottom:.3rem}
+.empty b{color:var(--text);font-size:1rem}
+.field{display:flex;flex-direction:column;gap:.4rem;margin-bottom:1.1rem}
+.field label{font-weight:600;font-size:.88rem}
+.field .wrap{position:relative}
+.field .wrap svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.field input{width:100%;font:500 1rem var(--font);padding:.85rem 1rem .85rem 2.8rem;border-radius:14px;border:1.5px solid var(--line);background:var(--surface);color:var(--text);transition:border .15s,box-shadow .15s}
+.field input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 4px rgba(47,107,255,.18)}
+.field.err input{border-color:var(--danger)}
+.field .msg{color:var(--danger);font-size:.82rem;display:none}
+.field.err .msg{display:block}
+.notice{padding:.85rem 1rem;border-radius:14px;background:var(--sky2);border:1px solid var(--sky);font-size:.88rem;color:var(--text);display:none;margin-bottom:1rem}
+.notice.show{display:block}
+.logo{display:inline-flex;align-items:center;gap:.65rem;font-weight:800;font-size:1.25rem;letter-spacing:-.02em}
+.logo svg{width:38px;height:38px}
+.logo span em{font-style:normal;color:var(--blue)}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);background:var(--navy);color:#fff;padding:.8rem 1.2rem;border-radius:14px;font-size:.9rem;opacity:0;pointer-events:none;transition:.25s;z-index:99;max-width:90vw}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.preview-bar{background:var(--navy);color:#cfe0ff;font-size:.8rem;text-align:center;padding:.5rem 1rem}
+
+/* ===== 3. PÁGINA INICIAL ===== */
+.landing{min-height:100vh;background:radial-gradient(1200px 600px at 85% -10%,#2F6BFF55,transparent),linear-gradient(160deg,var(--navy),#0B2A66 70%);color:#fff;display:flex;flex-direction:column;padding:1.5rem}
+.landing .logo{color:#fff}.landing .logo span em{color:#8FB4FF}
+.landing main{flex:1;display:grid;grid-template-columns:1.1fr .9fr;gap:3rem;align-items:center;max-width:1100px;margin:0 auto;width:100%;padding:2rem 0}
+.landing h1{font-size:clamp(2.2rem,5vw,3.6rem);font-weight:800;margin-bottom:1rem}
+.landing p.lead{color:#B9CCF2;font-size:1.1rem;max-width:30rem}
+.choices{display:grid;gap:1rem}
+.choice{display:flex;align-items:center;gap:1rem;padding:1.3rem;border-radius:20px;background:#ffffff14;border:1px solid #ffffff30;backdrop-filter:blur(8px);transition:transform .2s,background .2s}
+.choice:hover{background:#ffffff24;transform:translateX(4px)}
+.choice .ico{width:52px;height:52px;border-radius:16px;background:#fff;color:var(--navy);display:grid;place-items:center}
+.choice.primary .ico{background:var(--blue);color:#fff}
+.choice b{display:block;font-size:1.1rem}.choice span{color:#B9CCF2;font-size:.88rem}
+.choice .go{margin-left:auto;opacity:.7}
+.landing footer{text-align:center;color:#8FA6D4;font-size:.8rem}
+
+/* ===== 4. LOGIN ===== */
+.auth{min-height:100vh;display:grid;grid-template-columns:1fr 1fr}
+.auth .side{background:linear-gradient(160deg,var(--navy),var(--navy2));color:#fff;padding:2.5rem;display:flex;flex-direction:column;justify-content:space-between}
+.auth .side .logo{color:#fff}.auth .side .logo span em{color:#8FB4FF}
+.auth .side h2{font-size:2rem;font-weight:800;max-width:22rem}
+.auth .side p{color:#B9CCF2;margin-top:.7rem;max-width:24rem}
+.auth .form{display:flex;align-items:center;justify-content:center;padding:2rem}
+.auth .box{width:100%;max-width:400px}
+.auth .box h1{font-size:1.7rem;margin-bottom:.4rem}
+.back{display:inline-flex;align-items:center;gap:.4rem;color:var(--muted);font-weight:600;font-size:.9rem;margin-bottom:1.6rem}
+.back:hover{color:var(--blue)}
+.preview-link{display:block;text-align:center;margin-top:1.2rem;font-size:.85rem;color:var(--muted)}
+.preview-link:hover{color:var(--blue)}
+
+/* ===== 5. DASHBOARDS ===== */
+.topbar{display:flex;align-items:center;gap:1rem;padding:1rem 1.5rem;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .sp{flex:1}
+.avatar{width:38px;height:38px;border-radius:50%;background:var(--sky);color:var(--blue);display:grid;place-items:center;font-weight:800}
+.page{max-width:1100px;margin:0 auto;padding:1.6rem 1.25rem 3rem}
+.page h1{font-size:1.7rem;margin-bottom:.3rem}
+.grid{display:grid;gap:1.1rem;margin-top:1.3rem}
+.g3{grid-template-columns:repeat(3,1fr)}.g5{grid-template-columns:repeat(5,1fr)}.g2{grid-template-columns:2fr 1fr}
+.hero{background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;border-radius:22px;padding:1.8rem;display:flex;align-items:center;justify-content:space-between;gap:1.5rem;flex-wrap:wrap;box-shadow:0 14px 34px rgba(47,107,255,.28)}
+.hero h2{font-size:1.5rem;margin-bottom:.3rem}.hero p{color:#D3E1FF;max-width:30rem}
+.section-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem}
+.section-h h2{font-size:1.1rem}
+
+.shell{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.side-nav{background:var(--navy);color:#fff;padding:1.4rem 1rem;display:flex;flex-direction:column;gap:1.6rem;position:sticky;top:0;height:100vh;overflow-y:auto}
+.side-nav .logo{color:#fff;padding:0 .5rem}.side-nav .logo span em{color:#8FB4FF}
+.side-nav nav{display:flex;flex-direction:column;gap:.25rem}
+.side-nav nav a{display:flex;align-items:center;gap:.8rem;padding:.75rem .9rem;border-radius:12px;color:#B9CCF2;font-weight:600;font-size:.93rem;transition:background .15s,color .15s}
+.side-nav nav a:hover{background:#ffffff14;color:#fff}
+.side-nav nav a.on{background:var(--blue);color:#fff}
+.side-nav .exit{margin-top:auto}
+.menu-btn{display:none;background:none;border:0;color:var(--text);cursor:pointer;padding:.3rem}
+.scrim{display:none}
+.chart{height:230px;border:2px dashed var(--line);border-radius:14px;display:flex;align-items:center;justify-content:center;background:repeating-linear-gradient(0deg,transparent 0 45px,var(--line) 45px 46px)}
+.chart .empty{background:var(--surface);border-radius:14px;padding:1rem 1.4rem}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:520px}
+th{text-align:left;font-size:.8rem;color:var(--muted);font-weight:700;padding:.7rem .8rem;border-bottom:1px solid var(--line)}
+td{padding:.5rem .8rem}
+
+@media (max-width:900px){
+  .landing main,.auth{grid-template-columns:1fr}
+  .auth .side{display:none}
+  .g3,.g2{grid-template-columns:1fr}.g5{grid-template-columns:1fr 1fr}
+  .shell{grid-template-columns:1fr}
+  .side-nav{position:fixed;left:0;top:0;bottom:0;width:272px;z-index:50;transform:translateX(-100%);transition:transform .25s}
+  .shell.open .side-nav{transform:none}
+  .shell.open .scrim{display:block;position:fixed;inset:0;background:#0A1F4488;z-index:40}
+  .menu-btn{display:block}
+}
+@media (max-width:520px){.g5{grid-template-columns:1fr}.landing main{gap:2rem}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.landing main>*{animation:rise .6s ease both}.landing main>*:nth-child(2){animation-delay:.12s}
+
+/* ===== 6. FORMULÁRIOS DE ACESSO ===== */
+.auth .box.wide{max-width:600px}
+.rq{color:var(--danger)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:0 1rem}
+.sect{font-size:1rem;margin:1.4rem 0 .9rem;padding-top:1.2rem;border-top:1px solid var(--line)}
+.sect.first{border:0;padding:0;margin-top:.5rem}
+.field select{width:100%;font:500 1rem var(--font);padding:.85rem 1rem;border-radius:14px;border:1.5px solid var(--line);background:var(--surface);color:var(--text)}
+.field.err select{border-color:var(--danger)}
+.field input.pw{padding-right:3rem}
+.eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:0;cursor:pointer;color:var(--muted);padding:8px;display:grid}
+.field .wrap .eye svg{position:static;transform:none}
+.hint{font-size:.8rem;color:var(--muted);margin:-.6rem 0 1rem}
+.field .chk{display:flex;gap:.6rem;font-weight:500;font-size:.88rem;align-items:flex-start}
+.field .chk input{width:auto;padding:0;margin-top:.25rem}
+.notice.err{background:#FDECEF;border-color:#F5C2CB;color:#8A1C2E}
+.notice.ok{background:#E8F7EE;border-color:#BFE6CD;color:#17613A}
+.alt{text-align:center;margin-top:1rem;font-size:.9rem;color:var(--muted)}.alt a{color:var(--blue);font-weight:700}
+.spin{width:16px;height:16px;border:2.5px solid #ffffff66;border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(1turn)}}
+.btn[disabled]{opacity:.8;cursor:progress}
+@media (max-width:520px){.row2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script>
+/* ===== A. ÍCONES ===== */
+const P={
+ home:'<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>',
+ users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 010 6.8M18 14.8c2 .6 3.3 2.3 3.6 5.2"/>',
+ inbox:'<path d="M3 13l3-8h12l3 8"/><path d="M3 13v6h18v-6h-5l-1.5 2h-5L8 13z"/>',
+ wallet:'<path d="M4 7h14a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2h11"/><circle cx="16" cy="13.5" r="1.2"/>',
+ card:'<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19M6 15h4"/>',
+ cal:'<rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 3v3M16 3v3"/>',
+ gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/>',
+ alert:'<path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/>',
+ trend:'<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
+ plus:'<path d="M12 5v14M5 12h14"/>',
+ arrow:'<path d="M5 12h14M13 6l6 6-6 6"/>',
+ back:'<path d="M19 12H5M11 6l-6 6 6 6"/>',
+ mail:'<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 7l9 6 9-6"/>',
+ lock:'<rect x="4" y="10.5" width="16" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 018 0v3"/>',
+ shield:'<path d="M12 3l8 3v6c0 4.5-3.2 7.8-8 9-4.8-1.2-8-4.5-8-9V6z"/><path d="M9 12l2.2 2.2L15.5 10"/>',
+ menu:'<path d="M4 6h16M4 12h16M4 18h16"/>',
+ out:'<path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>',
+ chat:'<path d="M21 12a8 8 0 01-11.6 7.1L3 20.5l1.5-5.2A8 8 0 1121 12z"/>',
+ doc:'<path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5M9 13h7M9 17h7"/>',
+ clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+};
+const icon=n=>`<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${P[n]}</svg>`;
+
+/* ===== B. COMPONENTES REUTILIZÁVEIS ===== */
+const Logo=()=>`<a class="logo" href="#/" aria-label="JK CRED — página inicial">
+<svg viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4C86FF"/><stop offset="1" stop-color="#1F58E8"/></linearGradient></defs>
+<path d="M20 2.5l15 5.6v10.9c0 9-6.2 15.2-15 18.5C11.200 34.200 5 28 5 19V8.100z" fill="url(#lg)"/>
+<path d="M14 21.500l5 5 9-11" fill="none" stroke="#fff" stroke-width="3.200" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="28.500" cy="11" r="3" fill="#fff"/></svg><span>JK <em>CRED</em></span></a>`;
+const Btn=(label,{href,variant='primary',ico,id,block}={})=>{
+  const c=`btn btn-${variant}${block?' btn-block':''}`,inner=`${ico?icon(ico):''}${label}`;
+  return href?`<a class="${c}" href="${href}">${inner}</a>`:`<button class="${c}" ${id?`id="${id}"`:''} type="button">${inner}</button>`};
+const Empty=(ico,title,text,action='')=>`<div class="empty"><div class="ring">${icon(ico)}</div><b>${title}</b><span>${text}</span>${action}</div>`;
+const Stat=(ico,label,value,hint)=>`<article class="card stat"><div class="ico">${icon(ico)}</div><h3>${label}</h3><div class="val na">${value}</div><small>${hint}</small></article>`;
+const Field=({id,label,type='text',ico,placeholder,msg})=>`<div class="field" data-field="${id}"><label for="${id}">${label}</label>
+<div class="wrap">${icon(ico)}<input id="${id}" name="${id}" type="${type}" placeholder="${placeholder}" autocomplete="${type==='password'?'current-password':'username'}"></div><div class="msg" role="alert">${msg}</div></div>`;
+const Topbar=(left,right='')=>`<header class="topbar">${left}<span class="sp"></span>${right}</header>`;
+
+/* ===== C. TELAS ===== */
+const Landing=()=>`<div class="landing">
+<header>${Logo()}</header>
+<main>
+ <section><h1>Crédito com clareza, do pedido à última parcela.</h1>
+ <p class="lead">Solicite empréstimos, acompanhe parcelas e fale com a JK CRED em um só lugar.</p></section>
+ <section class="choices" aria-label="Escolha seu acesso">
+  <a class="choice primary" href="#/cliente/login"><div class="ico">${icon('users')}</div><div><b>Sou cliente</b><span>Acompanhe seus empréstimos e solicite crédito</span></div><span class="go">${icon('arrow')}</span></a>
+  <a class="choice" href="#/admin/login"><div class="ico">${icon('shield')}</div><div><b>Área administrativa</b><span>Gestão de clientes, solicitações e parcelas</span></div><span class="go">${icon('arrow')}</span></a>
+ </section>
+</main>
+<footer>© JK CRED — todos os direitos reservados</footer></div>`;
+
+const ClientNav=[['home','Início','#/cliente'],['wallet','Meus empréstimos','#/cliente/emprestimos'],['inbox','Solicitações','#/cliente/solicitacoes']];
+const ClientDash=()=>`
+${Topbar(Logo(),`<a class="btn btn-ghost" href="#/sair">${icon('out')}Sair</a><div class="avatar" aria-hidden="true">C</div>`)}
+<main class="page">
+ <h1>Olá, cliente</h1><p class="muted">Veja um resumo da sua conta na JK CRED.</p>
+ <section class="hero grid" style="display:flex"><div><h2>Precisa de crédito?</h2><p>Faça uma nova solicitação em poucos passos. Nossa equipe analisa e retorna pelo WhatsApp.</p></div>
+  <a class="btn btn-light" href="#/cliente/solicitar">${icon('plus')}Solicitar empréstimo</a></section>
+ <section class="grid g3">
+  <article class="card"><h3>${icon('wallet')}Meus empréstimos</h3>${Empty('wallet','Você ainda não possui empréstimos','Quando um empréstimo for contratado, ele aparece aqui.')}</article>
+  <article class="card"><h3>${icon('cal')}Próxima parcela</h3>${Empty('clock','Nenhuma parcela em aberto','A data e o valor da próxima parcela aparecerão aqui.')}</article>
+  <article class="card"><h3>${icon('card')}Valor total pendente</h3>${Empty('card','Sem valores pendentes','O saldo devedor será exibido aqui.')}</article>
+ </section>
+ <section class="grid g2">
+  <article class="card"><div class="section-h"><h2>Solicitações recentes</h2><a class="tag" href="#/cliente/solicitacoes">Ver todas</a></div>
+   ${Empty('inbox','Nenhuma solicitação ainda','Suas solicitações de empréstimo e o andamento delas ficam neste espaço.',Btn('Fazer solicitação',{href:'#/cliente/solicitar',variant:'ghost',ico:'plus'}))}</article>
+  <article class="card"><h3>${icon('chat')}Fale com a JK CRED</h3><p class="muted" style="margin:.7rem 0 1rem">Tire dúvidas sobre propostas, parcelas e pagamentos.</p>${Btn('Chamar no WhatsApp',{variant:'wa',ico:'chat',id:'waBtn',block:true})}</article>
+ </section>
+</main>`;
+
+const AdminNav=[['home','Visão geral','#/admin'],['users','Clientes','#/admin/clientes'],['inbox','Solicitações','#/admin/solicitacoes'],['wallet','Empréstimos','#/admin/emprestimos'],['card','Parcelas e pagamentos','#/admin/parcelas'],['cal','Vencimentos','#/admin/vencimentos'],['gear','Configurações','#/admin/configuracoes']];
+const AdminShell=(current,title,body)=>`<div class="shell" id="shell"><aside class="side-nav">${Logo()}
+ <nav aria-label="Menu administrativo">${AdminNav.map(([i,l,h])=>`<a href="${h}" class="${h===current?'on':''}">${icon(i)}${l}</a>`).join('')}</nav>
+ <nav class="exit"><a href="#/sair">${icon('out')}Sair</a></nav></aside><div class="scrim" id="scrim"></div>
+ <div>
+ ${Topbar(`<button class="menu-btn" id="menuBtn" aria-label="Abrir menu">${icon('menu')}</button><strong>${title}</strong>`,'<div class="avatar" aria-hidden="true">A</div>')}
+ <main class="page">${body}</main></div></div>`;
+
+const AdminDash=()=>AdminShell('#/admin','Visão geral',`
+ <h1>Visão geral</h1><p class="muted">Indicadores da operação. Os números reais serão exibidos quando o sistema estiver conectado aos dados.</p>
+ <section class="grid g5">
+  ${Stat('users','Total de clientes','—','Aguardando dados')}
+  ${Stat('inbox','Solicitações pendentes','—','Aguardando dados')}
+  ${Stat('wallet','Empréstimos ativos','—','Aguardando dados')}
+  ${Stat('trend','Total a receber','—','Aguardando dados')}
+  ${Stat('alert','Parcelas vencidas','—','Aguardando dados')}
+ </section>
+ <section class="grid g2">
+  <article class="card"><div class="section-h"><h2>Evolução da carteira</h2><span class="tag">Placeholder</span></div>
+   <div class="chart">${Empty('trend','Gráfico em desenvolvimento','Será preenchido na próxima etapa.')}</div></article>
+  <article class="card"><div class="section-h"><h2>Parcelas por status</h2><span class="tag">Placeholder</span></div>
+   <div class="chart">${Empty('card','Gráfico em desenvolvimento','Sem dados por enquanto.')}</div></article>
+ </section>
+ <section class="card" style="margin-top:1.1rem"><div class="section-h"><h2>Atividades recentes</h2></div>
+  <div class="table-wrap"><table><thead><tr><th>Data</th><th>Cliente</th><th>Atividade</th><th>Status</th></tr></thead>
+  <tbody><tr><td colspan="4">${Empty('doc','Nenhuma atividade registrada','As movimentações da operação aparecerão nesta tabela.')}</td></tr></tbody></table></div></section>`);
+
+const AdminStub=(h)=>{const n=AdminNav.find(x=>x[2]===h);return AdminShell(h,n[1],`<h1>${n[1]}</h1>${Empty(n[0],'Tela em desenvolvimento','Esta seção será construída nas próximas etapas.',Btn('Voltar à visão geral',{href:'#/admin',variant:'ghost',ico:'back'}))}`)};
+const ClientStub=(title,ico)=>`${Topbar(Logo(),`<a class="btn btn-ghost" href="#/cliente">${icon('back')}Início</a>`)}<main class="page"><h1>${title}</h1>${Empty(ico,'Tela em desenvolvimento','Esta funcionalidade será implementada nas próximas etapas.',Btn('Voltar ao início',{href:'#/cliente',variant:'ghost',ico:'back'}))}</main>`;
+
+/* ===== D. ROTAS ===== */
+const routes={
+ '#/':Landing,
+ '#/cliente':ClientDash,
+ '#/cliente/emprestimos':()=>ClientStub('Meus empréstimos','wallet'),
+ '#/cliente/solicitacoes':()=>ClientStub('Solicitações','inbox'),
+ '#/cliente/solicitar':()=>ClientStub('Solicitar empréstimo','plus'),
+ '#/admin':AdminDash,
+};
+AdminNav.slice(1).forEach(([,,h])=>routes[h]=()=>AdminStub(h));
+
+function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('show'),2600)}
+
+function render(){
+  if(window.JKAuth&&!JKAuth.ready)return;
+  const h0=location.hash||'#/';
+  if(h0==='#/sair'){JKAuth.logout();return}
+  const redir=window.JKAuth&&JKAuth.redirectFor(h0);
+  if(redir&&redir!==h0){location.hash=redir;return}
+  const path=h0.split('?')[0];
+  document.getElementById('app').innerHTML=(routes[path]||Landing)();
+  window.scrollTo(0,0);
+  if(window.JKAuth)JKAuth.bind(path);
+  const wa=document.getElementById('waBtn');
+  if(wa)wa.onclick=()=>toast('O número de WhatsApp da JK CRED ainda não foi configurado.');
+  const mb=document.getElementById('menuBtn'),sh=document.getElementById('shell');
+  if(mb){mb.onclick=()=>sh.classList.add('open');document.getElementById('scrim').onclick=()=>sh.classList.remove('open')}
+}
+addEventListener('hashchange',render);
+</script>
+<script src="auth.js"></script>
+</body>
+</html>
