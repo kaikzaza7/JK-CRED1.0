@@ -12,14 +12,19 @@ function text(x,y,value,size=25,fill='#f5f1e5',extra=''){return `<text x="${x}" 
 function glint(x,y,size=22){return `<g transform="translate(${x} ${y})"><ellipse rx="${size*2.5}" ry="${size*.68}" fill="url(#flare)"/><ellipse rx="${size*.68}" ry="${size*2.5}" fill="url(#flare)"/><path d="M-${size} 0H${size}M0 -${size}V${size}" stroke="#fff3b0" stroke-width="1.4"/><circle r="2.3" fill="#fffbe0"/></g>`;}
 function panel(x,y,width,height,radius=22){return `<rect x="${x}" y="${y}" width="${width}" height="${height}" rx="${radius}" fill="url(#panel-black)" stroke="url(#metal-edge)" stroke-width="3"/><rect x="${x+1}" y="${y+1}" width="${width-2}" height="${height-2}" rx="${radius-1}" fill="none" stroke="#ffcc37" stroke-width="1.2" filter="url(#gold-bloom)" opacity=".85"/><path d="M${x+24} ${y+5}H${x+width-24}" stroke="#fff2af" opacity=".5"/>`;}
 function artIcon(kind,x,y,scale=1){const paths={person:'<circle cx="24" cy="14" r="9"/><path d="M8 47v-9c0-17 32-17 32 0v9Z"/>',coins:'<ellipse cx="24" cy="10" rx="19" ry="7"/><path d="M5 10v9c0 9 38 9 38 0v-9M5 23v9c0 9 38 9 38 0v-9M5 36v6c0 9 38 9 38 0v-6" fill="none" stroke="url(#metal-icon)" stroke-width="5"/>',calendar:'<rect x="4" y="8" width="40" height="37" rx="5" fill="none" stroke="url(#metal-icon)" stroke-width="4"/><path d="M14 3v10M34 3v10M6 20h36M14 27h4m8 0h4m-16 9h4m8 0h4" fill="none" stroke="url(#metal-icon)" stroke-width="4"/>',plan:'<path d="M10 5h29v42H10Z" fill="none" stroke="url(#metal-icon)" stroke-width="4"/><path d="M18 5V2h13v8H18Z"/><path d="M17 21h15M17 30h15M17 39h11" fill="none" stroke="url(#metal-icon)" stroke-width="3"/>',wallet:'<path d="M5 12 37 5v10H5v31h39V15H5Z" fill="none" stroke="url(#metal-icon)" stroke-width="4"/><path d="M31 26h13v10H31Z"/><circle cx="35" cy="31" r="1.5" fill="#241400"/>',info:'<rect x="8" y="3" width="32" height="43" rx="4" fill="none" stroke="url(#metal-icon)" stroke-width="4"/><path d="M16 14h15M16 23h15M16 32h15" fill="none" stroke="url(#metal-icon)" stroke-width="3"/>'};return `<g transform="translate(${x} ${y}) scale(${scale})" fill="url(#metal-icon)">${paths[kind]||paths.coins}</g>`;}
-export function proposalSVG({name,calculation:c,dates,issuedOn}){
+export function adhesionProposal(loan){
+ const rows=[...loan.installments].sort((a,b)=>a.number-b.number),principal=Number(loan.principal_cents),total=Number(loan.total_cents),fee=Number(loan.fee_cents),count=Number(loan.count);
+ return {kind:'adhesion',name:loan.client?.name,protocol:loan.protocol,issuedOn:loan.released_on,dates:rows.map(row=>row.due_on),calculation:{principal,total,fee,count,rate:Number(loan.rate_bps),interest:Number(loan.interest_cents),extras:fee*(count-1),effective:(total-principal)/principal*100,amounts:rows.map(row=>Number(row.amount_cents))}};
+}
+export function proposalSVG({name,calculation:c,dates,issuedOn,kind='simulation',protocol=''}){
  if(dates.length!==c.count)throw new Error('Confira os vencimentos antes de gerar a imagem.');
- const names=wrap(name||'Proposta personalizada',43),nameExtra=(names.length-1)*37;
+ const adhesion=kind==='adhesion',names=wrap(name||(adhesion?'Confirmação de adesão':'Proposta personalizada'),43),contractLines=adhesion&&protocol?wrap(`CONTRATO: ${protocol}`,65):[],nameExtra=(names.length-1)*37+contractLines.length*27;
+ const heading=adhesion?'ADESÃO':'SIMULAÇÃO DE',mainTitle=adhesion?'CONCLUÍDA':'EMPRÉSTIMO',principalLabel=adhesion?'VALOR LIBERADO':'VALOR SOLICITADO',principalBasis=adhesion?'valor liberado':'valor solicitado';
  const start=846+nameExtra,rowHeight=64,tableY=start+68,rowsY=tableY+60,tableBottom=rowsY+c.count*rowHeight,totalY=tableBottom+24,panelBottom=totalY+142,notesY=panelBottom+25,footerY=notesY+280,height=footerY+143;
  const gold='#ffe578',muted='#ddd4bf';
  const table=c.amounts.map((amount,i)=>{const y=rowsY+i*rowHeight,value=money(amount),size=Math.min(30,Math.floor(280/(value.length*.56)));return `<rect x="84" y="${y}" width="912" height="${rowHeight}" fill="${i%2===0?'#101010':'#19140d'}"/>${text(122,y+42,`${String(i+1).padStart(2,'0')} / ${String(c.count).padStart(2,'0')}`,27,'#fff6db')}${text(418,y+42,dateLabel(dates[i]),29,'#fff6db')}${text(968,y+42,value,size,'#fff0af','text-anchor="end" font-weight="700"')}<path d="M84 ${y+rowHeight}H996M350 ${y}V${y+rowHeight}M710 ${y}V${y+rowHeight}" stroke="#b47b21" stroke-opacity=".65"/>`;}).join('');
  const feeRule=c.count>1?`${c.count-1} parcela(s) adicional(is) x ${money(c.fee)} = ${money(c.extras)} de acréscimos.`:'Parcela única: sem acréscimo de parcelamento.';
- const title=`Simulação JK CRED para ${name||'cliente'}: ${money(c.principal)}, total ${money(c.total)}, ${c.count} parcela(s).`;
+ const title=`${adhesion?'Adesão concluída':'Simulação'} JK CRED para ${name||'cliente'}: ${money(c.principal)}, total ${money(c.total)}, ${c.count} parcela(s).`;
  const buildings=Array.from({length:10},(_,i)=>{const x=i<5?i*49:800+(i-5)*57;const top=12+(i*31)%90;return `<rect x="${x}" y="${top}" width="${22+i%3*8}" height="360" fill="#ffa81e" opacity="${.08+i%3*.035}"/>${Array.from({length:7},(_,j)=>`<rect x="${x+5}" y="${top+17+j*39}" width="${10+i%3*4}" height="${9+j%3*5}" fill="#ffd144" opacity="${.45+j%3*.16}"/>`).join('')}`;}).join('');
  const principal=money(c.principal),principalSize=Math.min(62,Math.floor(485/(principal.length*.56))),total=money(c.total),totalSize=Math.min(65,Math.floor(570/(total.length*.56)));
  return `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="${height}" viewBox="0 0 1080 ${height}" role="img" aria-label="${esc(title)}" font-family="Arial, Helvetica, sans-serif">
@@ -48,16 +53,16 @@ export function proposalSVG({name,calculation:c,dates,issuedOn}){
  <ellipse cx="540" cy="168" rx="169" ry="165" fill="url(#amber-halo)" opacity=".17"/>
  ${logoData?`<image href="${logoData}" x="390" y="64" width="300" height="169"/>`:text(540,177,'JK CRED',62,gold,'text-anchor="middle" font-weight="900"')}
  ${text(540,265,'SEU CRÉDITO, NOSSO COMPROMISSO',13,gold,'text-anchor="middle" letter-spacing=".5"')}
- ${panel(61,100,213,91,14)}${artIcon('calendar',78,119,.8)}${text(134,132,'DATA DA SIMULAÇÃO',11,gold,'font-weight="700"')}${text(134,165,dateLabel(issuedOn),21,'#fff8d8','font-weight="600"')}
- ${panel(807,100,212,91,14)}${text(913,137,'FEITO PARA VOCÊ',16,gold,'text-anchor="middle" font-weight="700"')}${text(913,168,'PROPOSTA PERSONALIZADA',10,'#fff7da','text-anchor="middle" letter-spacing=".5"')}
+ ${panel(61,100,213,91,14)}${artIcon('calendar',78,119,.8)}${text(134,132,adhesion?'DATA DA LIBERAÇÃO':'DATA DA SIMULAÇÃO',11,gold,'font-weight="700"')}${text(134,165,dateLabel(issuedOn),21,'#fff8d8','font-weight="600"')}
+ ${panel(807,100,212,91,14)}${text(913,137,adhesion?'ADESÃO REGISTRADA':'FEITO PARA VOCÊ',16,gold,'text-anchor="middle" font-weight="700"')}${text(913,168,adhesion?'CONFIRMAÇÃO DO CONTRATO':'PROPOSTA PERSONALIZADA',10,'#fff7da','text-anchor="middle" letter-spacing=".5"')}
  <path d="M79 336Q540 306 1001 336L1012 464Q540 505 68 464Z" fill="#080807" stroke="url(#metal-edge)" stroke-width="1.5"/>
- ${text(540,381,'SIMULAÇÃO DE',49,'url(#metal-silver)','text-anchor="middle" font-weight="900" letter-spacing="1" filter="url(#title-shadow)"')}
- ${text(540,465,'EMPRÉSTIMO',91,'#804302','text-anchor="middle" font-weight="900" letter-spacing="1" stroke="#301604" stroke-width="3"')}
- ${text(540,460,'EMPRÉSTIMO',91,'url(#metal-title)','text-anchor="middle" font-weight="900" letter-spacing="1" stroke="#ffe78d" stroke-width=".7" paint-order="stroke" filter="url(#title-shadow)"')}
- ${text(540,499,'VALORES E VENCIMENTOS PARA VOCÊ ANALISAR',17,'#fff2c5','text-anchor="middle" font-weight="600" letter-spacing="2"')}
+ ${text(540,381,heading,49,'url(#metal-silver)','text-anchor="middle" font-weight="900" letter-spacing="1" filter="url(#title-shadow)"')}
+ ${text(540,465,mainTitle,91,'#804302','text-anchor="middle" font-weight="900" letter-spacing="1" stroke="#301604" stroke-width="3"')}
+ ${text(540,460,mainTitle,91,'url(#metal-title)','text-anchor="middle" font-weight="900" letter-spacing="1" stroke="#ffe78d" stroke-width=".7" paint-order="stroke" filter="url(#title-shadow)"')}
+ ${text(540,499,adhesion?'VALORES E VENCIMENTOS DO SEU CONTRATO':'VALORES E VENCIMENTOS PARA VOCÊ ANALISAR',17,'#fff2c5','text-anchor="middle" font-weight="600" letter-spacing="2"')}
  ${panel(57,530,966,109+nameExtra)}${artIcon('person',80,565,.95)}<path d="M151 551V${617+nameExtra}" stroke="#c8942a"/>
- ${text(176,564,'NOME DO CLIENTE',17,gold,'font-weight="700" letter-spacing="1"')}${names.map((line,i)=>text(176,606+i*37,line,30,'#fff8e7','font-weight="700"')).join('')}
- ${panel(57,661+nameExtra,568,151)}${artIcon('wallet',81,683+nameExtra,1)}${text(155,697+nameExtra,'VALOR SOLICITADO',17,gold,'font-weight="700" letter-spacing=".6"')}${text(91,772+nameExtra,principal,principalSize,'#fff1ad','font-weight="800"')}
+ ${text(176,564,'NOME DO CLIENTE',17,gold,'font-weight="700" letter-spacing="1"')}${names.map((line,i)=>text(176,606+i*37,line,30,'#fff8e7','font-weight="700"')).join('')}${contractLines.map((line,i)=>text(176,606+(names.length-1)*37+(i+1)*27,line,19,gold,'font-weight="600"')).join('')}
+ ${panel(57,661+nameExtra,568,151)}${artIcon('wallet',81,683+nameExtra,1)}${text(155,697+nameExtra,principalLabel,17,gold,'font-weight="700" letter-spacing=".6"')}${text(91,772+nameExtra,principal,principalSize,'#fff1ad','font-weight="800"')}
  ${panel(642,661+nameExtra,381,151)}${artIcon('coins',669,683+nameExtra,.88)}${text(735,697+nameExtra,'PARCELAS',17,gold,'font-weight="700" letter-spacing="1"')}${text(733,773+nameExtra,`${c.count}x`,62,'#ffe77b','font-weight="900"')}${text(993,771+nameExtra,c.count===1?'PAGAMENTO ÚNICO':'PARCELADO',12,muted,'text-anchor="end" letter-spacing=".3"')}
  ${panel(57,start,966,panelBottom-start)}${artIcon('plan',82,start+15,.85)}${text(146,start+47,'PLANO DE PAGAMENTO',30,'url(#metal-title)','font-weight="900"')}
  <path d="M84 ${tableY+15}Q84 ${tableY} 100 ${tableY}H980Q996 ${tableY} 996 ${tableY+15}V${tableY+60}H84Z" fill="url(#gold-band)" stroke="#ffe992" stroke-width="1.5"/>
@@ -67,17 +72,17 @@ export function proposalSVG({name,calculation:c,dates,issuedOn}){
  ${text(108,totalY+52,'TOTAL',27,'#241501','font-weight="900"')}${text(108,totalY+88,'A PAGAR',27,'#241501','font-weight="900"')}${text(963,totalY+80,total,totalSize,'#ffe783','text-anchor="end" font-weight="900"')}
  ${panel(57,notesY,966,252)}${artIcon('info',82,notesY+18,.85)}${text(147,notesY+48,'RESUMO DAS CONDIÇÕES',22,gold,'font-weight="800" letter-spacing=".7"')}
  <path d="M83 ${notesY+68}H995" stroke="#a87820"/>
- ${text(84,notesY+108,`Juros: ${(c.rate/100).toLocaleString('pt-BR')}% sobre o valor solicitado (${money(c.interest)}).`,23,'#fff3d3')}
+ ${text(84,notesY+108,`Juros: ${(c.rate/100).toLocaleString('pt-BR')}% sobre o ${principalBasis} (${money(c.interest)}).`,23,'#fff3d3')}
  ${text(84,notesY+147,feeRule,21,muted)}
  ${text(84,notesY+182,c.count>1?'A primeira parcela não gera acréscimo. O adicional integra o total parcelado.':'O valor total inclui os juros informados acima.',20,muted)}
- ${text(84,notesY+223,`Encargo total: ${c.effective.toLocaleString('pt-BR',{maximumFractionDigits:2})}% sobre o valor solicitado.`,22,'#ffe370','font-weight="600"')}
+ ${text(84,notesY+223,`Encargo total: ${c.effective.toLocaleString('pt-BR',{maximumFractionDigits:2})}% sobre o ${principalBasis}.`,22,'#ffe370','font-weight="600"')}
  <path d="M114 ${footerY+32}H344M736 ${footerY+32}H966" stroke="url(#metal-edge)" stroke-width="2"/>
  ${logoData?`<image href="${logoData}" x="438" y="${footerY-19}" width="204" height="115"/>`:text(540,footerY+40,'JK CRED',40,gold,'text-anchor="middle" font-weight="800"')}
- ${text(540,footerY+104,'SIMULAÇÃO SUJEITA À CONFIRMAÇÃO DAS CONDIÇÕES.',15,'#f8e0a2','text-anchor="middle" letter-spacing="1"')}
+ ${text(540,footerY+104,adhesion?'ADESÃO CONCLUÍDA. GUARDE ESTA CONFIRMAÇÃO.':'SIMULAÇÃO SUJEITA À CONFIRMAÇÃO DAS CONDIÇÕES.',15,'#f8e0a2','text-anchor="middle" letter-spacing="1"')}
  ${glint(545,25,25)}${glint(390,169,15)}${glint(690,173,15)}${glint(256,191,14)}${glint(826,100,17)}${glint(540,331,21)}${glint(72,544,20)}${glint(1019,623+nameExtra,20)}${glint(619,686+nameExtra,16)}${glint(647,800+nameExtra,18)}${glint(1030,start+105,20)}${glint(540,panelBottom,21)}${glint(65,notesY+215,17)}${glint(1019,notesY+9,15)}${glint(1005,height-25,16)}
  </svg>`;
 }
-export function proposalFilename(name,date){const slug=String(name||'cliente').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,65);return `jk-cred-simulacao-${slug||'cliente'}-${date}.jpeg`;}
+export function proposalFilename(name,date,kind='simulation'){const slug=String(name||'cliente').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,65);return `jk-cred-${kind==='adhesion'?'adesao':'simulacao'}-${slug||'cliente'}-${date}.jpeg`;}
 export async function proposalJPEG(svg,filename){
  const image=new Image();
  // A data URL with only embedded assets keeps the canvas export same-origin.

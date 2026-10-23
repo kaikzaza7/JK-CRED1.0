@@ -24,6 +24,10 @@
 @media print{.proposal.proposal-art{border:0;box-shadow:none;overflow:visible}.proposal-art>svg{display:block;width:100%;height:auto}body.printing .content{max-width:100%;width:100%}}
 
 .brand img{width:88px}.brand-caption{font-size:8px;letter-spacing:1px;padding-left:8px}
+.adhesion-artwork{margin:18px 0;border:1px solid var(--line);border-radius:10px;background:var(--surface2)}
+.adhesion-artwork>summary{padding:15px;color:var(--gold);font-size:12px;cursor:pointer}
+.adhesion-artwork>summary:focus-visible{outline:2px solid var(--gold);outline-offset:-3px;border-radius:9px}
+.adhesion-artwork>div{padding:0 15px 15px;max-width:510px;margin:auto}
 
 /* Calendar: use the recorded installment dates, with a gold person per due day. */
 .sidebar{overflow-y:auto}
