@@ -1,0 +1,2 @@
+/* Local system fonts keep this private panel independent of third-party font servers. */
+@font-face{font-family:Inter;src:local('Inter'),local('Arial');font-style:normal;font-weight:100 900;font-display:swap}
