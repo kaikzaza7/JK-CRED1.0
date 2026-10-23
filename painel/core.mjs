@@ -40,33 +40,25 @@ export function phoneFormat(value) {
  return '+55'+(p.length?' '+p.slice(0,2):'')+(rest?' '+(rest.length>4?rest.slice(0,-4)+'-'+rest.slice(-4):rest):'');
 }
 export function whatsApp(phone,text) { return 'https://wa.me/'+digits(normalizePhone(phone))+'?text='+encodeURIComponent(text); }
-export const DEFAULT_TEMPLATE = `*JK CRED | ADESÃO CONFIRMADA*
+export const DEFAULT_TEMPLATE = `✅ ADESÃO REALIZADA COM SUCESSO ✅
 
-Olá, {nome}!
+Olá, {nome}
 
-Registramos sua adesão. Confira o resumo das condições combinadas:
+Seu cadastro foi aprovado e sua adesão foi concluída com sucesso. 🎉
 
-*DADOS DO CONTRATO*
-Contrato: {contrato}
-Data da liberação: {data}
-Valor liberado: *{valor}*
+📄 Contrato: {situacao}
+💰 Valor liberado: {valor}
+📅 Data: {data}
 
-*JUROS E PARCELAMENTO*
-Juros sobre o valor liberado: {taxa}% ({juros})
-Acréscimo por parcela adicional: {acrescimo}
-Acréscimos de parcelamento: {extras} no total
-A primeira parcela não gera acréscimo. Os adicionais integram o total e são distribuídos nas parcelas abaixo.
-Encargo total sobre o valor liberado: {efetiva}%
+{vencimentos}
 
-*PARCELAS E VENCIMENTOS*
-{parcelas}
+{retornos}
 
-*TOTAL A PAGAR: {total}*
+💰 Total : {total}
 
-Confira os dados e guarde esta confirmação para acompanhar seus pagamentos. Se precisar esclarecer qualquer informação, fale com nossa equipe.
+A partir de agora, seu atendimento e acompanhamento financeiro já estão ativos em nosso sistema.
 
-*JK CRED*
-Seu crédito, nosso compromisso.`;
+Em caso de dúvidas, estamos à disposição.`;
 export const SIMULATION_TEMPLATE = `*JK CRED | SIMULAÇÃO PERSONALIZADA*
 
 Olá, {nome}!
@@ -95,7 +87,7 @@ Se estiver de acordo com os valores e vencimentos, responda a esta mensagem para
 *JK CRED*
 Seu crédito, nosso compromisso.`;
 export function messageFor(client,loan,installments,template=DEFAULT_TEMPLATE,simulation=false) {
- const params={nome:client.name||'Cliente',contrato:loan.protocol||'Simulação',valor:money(loan.principal_cents),data:dateLabel(loan.released_on),taxa:(loan.rate_bps/100).toLocaleString('pt-BR'),juros:money(loan.interest_cents),acrescimo:money(loan.fee_cents),extras:money(loan.fee_cents*(loan.count-1)),efetiva:((loan.total_cents-loan.principal_cents)/loan.principal_cents*100).toLocaleString('pt-BR',{maximumFractionDigits:2}),parcelas:installments.map((s,i)=>`${i+1}/${installments.length} - Vencimento: ${dateLabel(s.due_on)} - Valor: ${money(s.amount_cents)}`).join('\n'),total:money(loan.total_cents)};
+ const params={nome:client.name||'Cliente',contrato:loan.protocol||'Simulação',situacao:loan.status==='cancelled'?'Cancelado':'Ativado',valor:money(loan.principal_cents),data:dateLabel(loan.released_on),taxa:(loan.rate_bps/100).toLocaleString('pt-BR'),juros:money(loan.interest_cents),acrescimo:money(loan.fee_cents),extras:money(loan.fee_cents*(loan.count-1)),efetiva:((loan.total_cents-loan.principal_cents)/loan.principal_cents*100).toLocaleString('pt-BR',{maximumFractionDigits:2}),parcelas:installments.map((s,i)=>`${i+1}/${installments.length} - Vencimento: ${dateLabel(s.due_on)} - Valor: ${money(s.amount_cents)}`).join('\n'),vencimentos:installments.map(s=>`📌 Vencimento: ${dateLabel(s.due_on)}`).join('\n'),retornos:installments.map((s,i)=>`💱 ${i+1}x Retorno ${money(s.amount_cents)}`).join('\n'),total:money(loan.total_cents)};
  const source=simulation?SIMULATION_TEMPLATE:(template||DEFAULT_TEMPLATE);
  return source.replace(/\{(\w+)\}/g,(match,key)=>params[key]??match);
 }

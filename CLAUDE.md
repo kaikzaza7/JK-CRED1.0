@@ -9,7 +9,7 @@ This repository is now a PRIVATE administration panel. There is no customer port
 - Supabase schema uses additive `jk_*` tables with RLS and protected RPCs. Never put secrets, service-role keys or database contents in commits.
 - SQL migrations are in `database/`. Preserve existing financial records and keep mutation/audit operations atomic.
 - Use integer cents, basis points, half-up interest and last-installment cent adjustment. Total extra fee is fee × (installment count − 1).
-- Copy client proposal and WhatsApp message should show principal, rate, interest, additional fees, effective total charge, total and all installment dates.
+- Client proposal/JPEG and simulation messages show principal, rate, interest, additional fees, effective total charge, total and all installment dates. Adhesion messages follow the current administrator-selected template, with all customer and contract values filled dynamically.
 - UI and messages: pt-BR. Dates: America/Sao_Paulo. Phones: +55 + DDD + number.
 - Preserve the supplied JK CRED brand (gold, silver/white, black) and responsive accessibility.
 - Run `node --test tests/*.test.mjs` and inspect affected browser flows before publishing.

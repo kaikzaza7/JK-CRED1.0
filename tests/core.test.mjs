@@ -11,6 +11,46 @@ test('monthly dates keep original day through February',()=>{assert.deepEqual(sc
 test('WhatsApp uses country + DDD and safely encodes message',()=>{assert.equal(normalizePhone('(79) 99999-0001'),'+5579999990001');assert.equal(phoneFormat('+5579999990001'),'+55 79 99999-0001');assert.equal(whatsApp('+55 79 99999-0001','Olá! R$ 280,00\n30%'),'https://wa.me/5579999990001?text=Ol%C3%A1!%20R%24%20280%2C00%0A30%25');assert.throws(()=>normalizePhone('123'));});
 test('CPF validates check digits',()=>{assert.ok(validCPF('529.982.247-25'));assert.ok(!validCPF('11111111111'));assert.ok(!validCPF('52998224726'));});
 test('money parsing avoids float cent errors',()=>{assert.equal(decimalInt('93.33'),9333);assert.equal(decimalInt('0,29'),29);assert.equal(decimalInt('30'),3000);assert.throws(()=>decimalInt('0.001'));});
-test('message exposes rate, total fee, effective charge and all due dates',()=>{const text=messageFor({name:'Cliente de teste'},{protocol:'JK-TESTE',principal_cents:20000,rate_bps:3000,interest_cents:6000,fee_cents:1000,count:3,total_cents:28000,released_on:'2026-10-23'},[{due_on:'2026-11-10',amount_cents:9333},{due_on:'2026-11-25',amount_cents:9333},{due_on:'2026-12-10',amount_cents:9334}],DEFAULT_TEMPLATE);for(const s of ['30%','40%','10/11/2026','25/11/2026','10/12/2026','93,34','280,00'])assert.ok(text.includes(s));assert.ok(!text.includes('{nome}'));});
+test('adhesion message follows the requested text with dynamic dates, installments and Unicode emoji',()=>{
+ const loan={protocol:'JK-TESTE',status:'active',principal_cents:20000,rate_bps:3000,interest_cents:6000,fee_cents:1000,count:3,total_cents:28000,released_on:'2026-10-23'};
+ const rows=[{due_on:'2026-11-10',amount_cents:9333},{due_on:'2026-11-25',amount_cents:9333},{due_on:'2026-12-10',amount_cents:9334}];
+ const message=messageFor({name:'Gabriel Santos Gonçalves Lima'},loan,rows);
+ const expected=`✅ ADESÃO REALIZADA COM SUCESSO ✅
+
+Olá, Gabriel Santos Gonçalves Lima
+
+Seu cadastro foi aprovado e sua adesão foi concluída com sucesso. 🎉
+
+📄 Contrato: Ativado
+💰 Valor liberado: R$ 200,00
+📅 Data: 23/10/2026
+
+📌 Vencimento: 10/11/2026
+📌 Vencimento: 25/11/2026
+📌 Vencimento: 10/12/2026
+
+💱 1x Retorno R$ 93,33
+💱 2x Retorno R$ 93,33
+💱 3x Retorno R$ 93,34
+
+💰 Total : R$ 280,00
+
+A partir de agora, seu atendimento e acompanhamento financeiro já estão ativos em nosso sistema.
+
+Em caso de dúvidas, estamos à disposição.`;
+ assert.equal(message.replaceAll('\u00a0',' '),expected);
+ assert.equal(new URL(whatsApp('+5579999990001',message)).searchParams.get('text'),message);
+ assert.ok(!message.includes('\uFFFD'));
+ assert.ok(!/\{\w+\}/.test(message));
+ const single=messageFor({name:'Ana de Exemplo'},{...loan,principal_cents:50000,interest_cents:15000,total_cents:65000,count:1,released_on:'2026-09-15'},[{due_on:'2026-10-06',amount_cents:65000}]);
+ for(const value of ['Ana de Exemplo','500,00','650,00','15/09/2026','06/10/2026','💱 1x Retorno'])assert.ok(single.includes(value),value);
+ assert.ok(!single.includes('2x Retorno'));
+ assert.ok(!single.includes('Gabriel'));
+});
+test('custom adhesion templates retain financial tokens and support separate due-date and return lists',()=>{
+ const loan={protocol:'JK-TESTE',status:'cancelled',principal_cents:20000,rate_bps:3000,interest_cents:6000,fee_cents:1000,count:3,total_cents:28000,released_on:'2026-10-23'};
+ const message=messageFor({name:'Teste'},loan,[{due_on:'2026-11-10',amount_cents:28000}],'{contrato} {situacao} {taxa}% {juros} {extras} {efetiva}% {vencimentos} {retornos} {parcelas}');
+ for(const value of ['JK-TESTE','Cancelado','30%','60,00','20,00','40%','📌 Vencimento: 10/11/2026','💱 1x Retorno','1/1 - Vencimento:'])assert.ok(message.includes(value),value);
+});
 test('CSV cells cannot start spreadsheet formulas',()=>assert.ok(csv([['=HYPERLINK("x")','+5579999990001']]).includes("'=HYPERLINK")));
 test('voided receipt does not reduce balance and partial receipt does',()=>{const m=enrich([{id:'c',name:'Test'}],[{id:'l',client_id:'c',status:'active'}],[{id:'i',loan_id:'l',amount_cents:10000,due_on:'2099-01-01',number:1}],[{installment_id:'i',amount_cents:1000},{installment_id:'i',amount_cents:2000,voided_at:'2026-01-01'}]);assert.equal(m.items[0].balance,9000);assert.equal(m.items[0].status,'partial');});
