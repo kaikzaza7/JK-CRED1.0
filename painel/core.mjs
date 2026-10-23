@@ -40,10 +40,63 @@ export function phoneFormat(value) {
  return '+55'+(p.length?' '+p.slice(0,2):'')+(rest?' '+(rest.length>4?rest.slice(0,-4)+'-'+rest.slice(-4):rest):'');
 }
 export function whatsApp(phone,text) { return 'https://wa.me/'+digits(normalizePhone(phone))+'?text='+encodeURIComponent(text); }
-export const DEFAULT_TEMPLATE = `✅ ADESÃO REALIZADA COM SUCESSO ✅\n\nOlá, {nome}!\n\nSua adesão à JK CRED foi concluída com sucesso. 🎉\n\n📄 Contrato: {contrato}\n💰 Valor liberado: {valor}\n📅 Data da liberação: {data}\n\n📊 Juros: {taxa}% ({juros})\n➕ Acréscimo por parcela adicional: {acrescimo}\n➕ Total de acréscimos: {extras}\nA primeira parcela não gera acréscimo.\n📈 Encargo total sobre o valor liberado: {efetiva}%\n\n📆 PARCELAS E VENCIMENTOS\n{parcelas}\n\n💰 Total a pagar: {total}\n\nSeu cadastro e acompanhamento financeiro estão ativos em nosso sistema.\n\nEm caso de dúvidas, estamos à disposição.\nJK CRED — Seu crédito, nosso compromisso.`;
+export const DEFAULT_TEMPLATE = `*JK CRED | ADESÃO CONFIRMADA*
+
+Olá, {nome}!
+
+Registramos sua adesão. Confira o resumo das condições combinadas:
+
+*DADOS DO CONTRATO*
+Contrato: {contrato}
+Data da liberação: {data}
+Valor liberado: *{valor}*
+
+*JUROS E PARCELAMENTO*
+Juros sobre o valor liberado: {taxa}% ({juros})
+Acréscimo por parcela adicional: {acrescimo}
+Acréscimos de parcelamento: {extras} no total
+A primeira parcela não gera acréscimo. Os adicionais integram o total e são distribuídos nas parcelas abaixo.
+Encargo total sobre o valor liberado: {efetiva}%
+
+*PARCELAS E VENCIMENTOS*
+{parcelas}
+
+*TOTAL A PAGAR: {total}*
+
+Confira os dados e guarde esta confirmação para acompanhar seus pagamentos. Se precisar esclarecer qualquer informação, fale com nossa equipe.
+
+*JK CRED*
+Seu crédito, nosso compromisso.`;
+export const SIMULATION_TEMPLATE = `*JK CRED | SIMULAÇÃO PERSONALIZADA*
+
+Olá, {nome}!
+
+Preparamos esta simulação para você avaliar com tranquilidade. Confira os valores e as datas de pagamento:
+
+*VALOR SOLICITADO: {valor}*
+
+*COMPOSIÇÃO DO VALOR TOTAL*
+Juros: {taxa}% sobre o valor solicitado ({juros})
+Acréscimo por parcela adicional: {acrescimo}
+Acréscimos de parcelamento: {extras} no total
+
+A primeira parcela não gera acréscimo. Os adicionais integram o valor total, dividido nas parcelas abaixo.
+
+*PARCELAS E VENCIMENTOS*
+{parcelas}
+
+*TOTAL A PAGAR: {total}*
+Encargo total: {efetiva}% sobre o valor solicitado, incluindo juros e acréscimos.
+
+Simulação sujeita à confirmação. Os valores e vencimentos serão confirmados com você antes da adesão.
+
+Se estiver de acordo com os valores e vencimentos, responda a esta mensagem para conversarmos sobre os próximos passos.
+
+*JK CRED*
+Seu crédito, nosso compromisso.`;
 export function messageFor(client,loan,installments,template=DEFAULT_TEMPLATE,simulation=false) {
- const params={nome:client.name||'Cliente',contrato:loan.protocol||'Simulação',valor:money(loan.principal_cents),data:dateLabel(loan.released_on),taxa:(loan.rate_bps/100).toLocaleString('pt-BR'),juros:money(loan.interest_cents),acrescimo:money(loan.fee_cents),extras:money(loan.fee_cents*(loan.count-1)),efetiva:((loan.total_cents-loan.principal_cents)/loan.principal_cents*100).toLocaleString('pt-BR',{maximumFractionDigits:2}),parcelas:installments.map((s,i)=>`${i+1}/${installments.length} • ${dateLabel(s.due_on)} • ${money(s.amount_cents)}`).join('\n'),total:money(loan.total_cents)};
- const source=simulation?'💛 SIMULAÇÃO JK CRED\n\nOlá, {nome}! Confira sua proposta:\n\n💰 Valor: {valor}\n📊 Juros: {taxa}% ({juros})\n➕ Acréscimo por parcela adicional: {acrescimo}\n➕ Acréscimos totais: {extras}\nA primeira parcela não gera acréscimo.\n📈 Encargo total: {efetiva}%\n\n{parcelas}\n\n💰 Total a pagar: {total}\n\nSimulação sujeita à confirmação.':(template||DEFAULT_TEMPLATE);
+ const params={nome:client.name||'Cliente',contrato:loan.protocol||'Simulação',valor:money(loan.principal_cents),data:dateLabel(loan.released_on),taxa:(loan.rate_bps/100).toLocaleString('pt-BR'),juros:money(loan.interest_cents),acrescimo:money(loan.fee_cents),extras:money(loan.fee_cents*(loan.count-1)),efetiva:((loan.total_cents-loan.principal_cents)/loan.principal_cents*100).toLocaleString('pt-BR',{maximumFractionDigits:2}),parcelas:installments.map((s,i)=>`${i+1}/${installments.length} - Vencimento: ${dateLabel(s.due_on)} - Valor: ${money(s.amount_cents)}`).join('\n'),total:money(loan.total_cents)};
+ const source=simulation?SIMULATION_TEMPLATE:(template||DEFAULT_TEMPLATE);
  return source.replace(/\{(\w+)\}/g,(match,key)=>params[key]??match);
 }
 export function enrich(clients,loans,installments,receipts) {

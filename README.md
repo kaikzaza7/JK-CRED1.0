@@ -33,10 +33,18 @@ Após provisionar um novo ambiente, gere uma credencial aleatória de alta entro
 
 ## Testes
 
-`node --test tests/core.test.mjs`
+`node --test tests/*.test.mjs`
 
 Valida cálculos em centavos, juros, acréscimos, vencimentos, CPF, WhatsApp e mensagens. Testes transacionais no Supabase validaram gravação atômica, pagamento parcial, bloqueio de pagamento acima do saldo, bloqueio de cancelamento com pagamentos, estorno e remarcação de vencimentos, com rollback dos dados de teste.
 
 ## Identidade
 
 A logo fornecida foi extraída com a ferramenta de imagem, preservando o monograma dourado e as letras prateadas. O ativo otimizado está em `painel/assets/logo.svg` (PNG incorporado). A interface usa preto, dourado e branco; a proposta para o cliente usa fundo claro para leitura e print.
+
+## Propostas em imagem e aparência
+
+A calculadora e a nova adesão exibem uma arte preta e dourada preenchida com os dados atuais. `Baixar JPEG` exporta em 1080 pixels de largura. `Compartilhar JPEG` abre o compartilhamento de arquivos do dispositivo quando disponível; caso contrário, baixa a imagem e orienta a anexá-la ao WhatsApp. O botão `WhatsApp (texto)` continua preparando somente a mensagem, sem enviar automaticamente. A imagem é gerada no navegador, sem upload dos dados da proposta.
+
+A mensagem padrão usa texto e formatação compatível com WhatsApp, sem emojis que possam aparecer corrompidos. Modelos de adesão personalizados salvos pela administração são preservados.
+
+Em Configurações → Aparência, os modos claro e escuro são lembrados por navegador. O tema é aplicado antes de a interface carregar e não altera a identidade da arte do cliente.

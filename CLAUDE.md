@@ -12,4 +12,4 @@ This repository is now a PRIVATE administration panel. There is no customer port
 - Copy client proposal and WhatsApp message should show principal, rate, interest, additional fees, effective total charge, total and all installment dates.
 - UI and messages: pt-BR. Dates: America/Sao_Paulo. Phones: +55 + DDD + number.
 - Preserve the supplied JK CRED brand (gold, silver/white, black) and responsive accessibility.
-- Run `node --test tests/core.test.mjs` and inspect affected browser flows before publishing.
+- Run `node --test tests/*.test.mjs` and inspect affected browser flows before publishing.
