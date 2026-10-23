@@ -13,7 +13,7 @@ test('adhesion JPEG uses the confirmation wording, release date and a distinct f
  assert.ok(!svg.includes('SIMULAÇÃO'));
  assert.ok(!svg.includes('VALOR SOLICITADO'));
  assert.equal(proposalFilename(data.name,data.issuedOn,data.kind),'jk-cred-adesao-gabriel-santos-goncalves-lima-2026-10-01.jpeg');
- assert.ok(proposalSVG(example()).includes('SIMULAÇÃO DE'));
+ assert.ok(proposalSVG(example()).includes('DE CRÉDITO'));
 });
 test('registered adhesion artwork keeps actual saved installment amounts and dates',()=>{
  const loan={client:{name:'Ana & João'},protocol:'JK-20261001-AB12',released_on:'2026-10-01',principal_cents:20000,rate_bps:3000,interest_cents:6000,fee_cents:1000,count:3,total_cents:28000,installments:[{number:3,due_on:'2026-12-12',amount_cents:10000},{number:1,due_on:'2026-10-29',amount_cents:9000},{number:2,due_on:'2026-11-19',amount_cents:9000}]};
@@ -23,4 +23,14 @@ test('registered adhesion artwork keeps actual saved installment amounts and dat
  assert.equal(data.calculation.total,28000);
  for(const value of ['90,00','100,00','280,00','29/10/2026','19/11/2026','12/12/2026','Ana &amp; João'])assert.ok(svg.includes(value),value);
  assert.equal(loan.installments[0].number,3);
+});
+test('document templates format the available customer data without including internal notes',()=>{
+ const client={name:'Gabriel Santos',cpf:'52998224725',phone:'+5579999990001',city:'Aracaju',state:'SE',district:'Centro',notes:'INTERNAL_CLIENT_NOTE'};
+ const svg=proposalSVG({...example(),client});
+ for(const value of ['529.982.247-25','+55 79 99999-0001','Aracaju / SE • Centro','DADOS DO CLIENTE','COMPOSIÇÃO DO VALOR'])assert.ok(svg.includes(value),value);
+ assert.ok(!svg.includes('INTERNAL_CLIENT_NOTE'));
+ assert.ok(!svg.includes('<filter'));
+ const missing=proposalSVG(example());
+ assert.ok(!missing.includes('undefined'));
+ assert.ok(!missing.includes('null'));
 });
