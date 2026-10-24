@@ -31,6 +31,22 @@ declare
 begin
  if current_user<>'anon' then raise exception 'Teste deve usar o papel da API';end if;
  v_snapshot=public.jk_gateway(v_token,'jk_cash_snapshot','{}');v_initial=(v_snapshot->'account'->>'balance_cents')::bigint;
+ -- A brand-new client and loan must be saved even against the real initial deficit.
+ v_request=gen_random_uuid();
+ v_loan_args=jsonb_build_object('p_client',current_setting('jk_test.client')::jsonb,'p_loan',jsonb_build_object('principal_cents',20000,'rate_bps',3000,'fee_cents',1000,'released_on',v_today,'dates',jsonb_build_array(v_today+7,v_today+22)),'p_request_id',v_request);
+ v_loan=(public.jk_gateway(v_token,'jk_create_adhesion',v_loan_args)#>>'{}')::uuid;
+ v_again=(public.jk_gateway(v_token,'jk_create_adhesion',v_loan_args)#>>'{}')::uuid;
+ if v_again<>v_loan or (public.jk_gateway(v_token,'jk_cash_snapshot','{}')->'account'->>'balance_cents')::bigint<>v_initial-20000 then raise exception 'Novo cliente/empréstimo sem saldo falhou ou debitou duas vezes';end if;
+ select (e->>'client_id')::uuid into v_client from jsonb_array_elements(public.jk_gateway(v_token,'load_table','{"table":"jk_loans","from":0}')) as e where e->>'id'=v_loan::text;
+ select (e->>'id')::uuid into v_item from jsonb_array_elements(public.jk_gateway(v_token,'load_table','{"table":"jk_installments","from":0}')) as e where e->>'loan_id'=v_loan::text and e->>'number'='1';
+ if v_client is null or v_item is null then raise exception 'Novo cliente/parcelas não foram gravados';end if;
+ v_receipt=(public.jk_gateway(v_token,'jk_record_payment',jsonb_build_object('p_installment_id',v_item,'p_amount_cents',5000,'p_paid_on',v_today,'p_method','pix','p_request_id',gen_random_uuid()))#>>'{}')::uuid;
+ if (public.jk_gateway(v_token,'jk_cash_snapshot','{}')->'account'->>'balance_cents')::bigint<>v_initial-15000 then raise exception 'Recebimento em caixa negativo incorreto';end if;
+ perform public.jk_gateway(v_token,'jk_reverse_payment',jsonb_build_object('p_id',v_receipt,'p_reason','Pagamento temporário de teste'));
+ perform public.jk_gateway(v_token,'jk_change_loan',jsonb_build_object('p_id',v_loan,'p_action','cancel','p_reason','Contrato temporário de teste'));
+ if (public.jk_gateway(v_token,'jk_cash_snapshot','{}')->'account'->>'balance_cents')::bigint<>v_initial then raise exception 'Cancelamento não restaurou déficit inicial';end if;
+ v_snapshot=public.jk_gateway(v_token,'jk_cash_snapshot','{}');
+
  -- Normalize an existing deficit only inside this rolled-back test transaction.
  if v_initial<0 then
   perform public.jk_gateway(v_token,'jk_cash_record',jsonb_build_object('p_kind','contribution','p_amount_cents',-v_initial,'p_notes','Recomposição temporária para teste','p_request_id',gen_random_uuid()));
@@ -49,7 +65,7 @@ begin
  v_failed=false;begin perform public.jk_gateway(v_token,'jk_cash_record',jsonb_build_object('p_kind','withdrawal','p_amount_cents',v_initial+105001,'p_request_id',gen_random_uuid()));exception when others then
   if position('Saldo de caixa insuficiente' in sqlerrm)=0 then raise;end if;v_failed=true;
  end;if not v_failed then raise exception 'Aceitou saída maior que o saldo';end if;
- v_loan_args=jsonb_build_object('p_client',current_setting('jk_test.client')::jsonb,'p_loan',jsonb_build_object('principal_cents',20000,'rate_bps',3000,'fee_cents',1000,'released_on',v_today,'dates',jsonb_build_array(v_today+7,v_today+22)),'p_request_id',v_loan_request);
+ v_loan_args=jsonb_build_object('p_client_id',v_client,'p_loan',jsonb_build_object('principal_cents',20000,'rate_bps',3000,'fee_cents',1000,'released_on',v_today,'dates',jsonb_build_array(v_today+7,v_today+22)),'p_request_id',v_loan_request);
  v_loan=(public.jk_gateway(v_token,'jk_create_adhesion',v_loan_args)#>>'{}')::uuid;
  v_again=(public.jk_gateway(v_token,'jk_create_adhesion',v_loan_args)#>>'{}')::uuid;if v_again<>v_loan then raise exception 'Adesão duplicada';end if;
  v_snapshot=public.jk_gateway(v_token,'jk_cash_snapshot','{}');
@@ -81,12 +97,24 @@ begin
  perform public.jk_gateway(v_token,'jk_cash_reverse',jsonb_build_object('p_id',v_contribution));
  perform public.jk_gateway(v_token,'jk_cash_reverse',jsonb_build_object('p_id',v_entry));
  if (public.jk_gateway(v_token,'jk_cash_snapshot','{}')->'account'->>'balance_cents')::bigint<>v_initial then raise exception 'Estornos de aportes não restauraram saldo';end if;
- -- Rejected contracts leave no partially saved loan or cash movement.
- v_failed=false;begin perform public.jk_gateway(v_token,'jk_create_adhesion',jsonb_build_object('p_client_id',v_client,'p_loan',jsonb_build_object('principal_cents',greatest(v_initial+1,20000),'rate_bps',3000,'fee_cents',0,'released_on',v_today,'dates',jsonb_build_array(v_today+7)),'p_request_id',v_bad_request));exception when others then
-  if position('Saldo de caixa insuficiente' in sqlerrm)=0 then raise;end if;v_failed=true;
- end;if not v_failed then raise exception 'Liberou empréstimo sem saldo';end if;
- if exists(select 1 from jsonb_array_elements(public.jk_gateway(v_token,'load_table','{"table":"jk_loans","from":0}')) as e where e->>'request_id'=v_bad_request::text) then raise exception 'Falha deixou contrato parcial';end if;
- -- Corrections may expose a deficit; normal outflows must then be blocked.
+ -- Loans are permitted both above available funds and while already negative.
+ v_loan_args=jsonb_build_object('p_client_id',v_client,'p_loan',jsonb_build_object('principal_cents',greatest(v_initial+1,20000),'rate_bps',3000,'fee_cents',0,'released_on',v_today,'dates',jsonb_build_array(v_today+7)),'p_request_id',v_bad_request);
+ v_loan=(public.jk_gateway(v_token,'jk_create_adhesion',v_loan_args)#>>'{}')::uuid;
+ v_again=(public.jk_gateway(v_token,'jk_create_adhesion',v_loan_args)#>>'{}')::uuid;
+ v_balance=v_initial-greatest(v_initial+1,20000);
+ if v_again<>v_loan or (public.jk_gateway(v_token,'jk_cash_snapshot','{}')->'account'->>'balance_cents')::bigint<>v_balance then raise exception 'Empréstimo acima do caixa falhou ou duplicou débito';end if;
+ v_again=(public.jk_gateway(v_token,'jk_create_adhesion',jsonb_build_object('p_client_id',v_client,'p_loan',jsonb_build_object('principal_cents',5000,'rate_bps',0,'fee_cents',0,'released_on',v_today,'dates',jsonb_build_array(v_today+7)),'p_request_id',gen_random_uuid()))#>>'{}')::uuid;
+ if (public.jk_gateway(v_token,'jk_cash_snapshot','{}')->'account'->>'balance_cents')::bigint<>v_balance-5000 then raise exception 'Novo empréstimo não aumentou negativo existente';end if;
+ perform public.jk_gateway(v_token,'jk_change_loan',jsonb_build_object('p_id',v_again,'p_action','cancel','p_reason','Contrato temporário de teste'));
+ perform public.jk_gateway(v_token,'jk_change_loan',jsonb_build_object('p_id',v_loan,'p_action','cancel','p_reason','Contrato temporário de teste'));
+ -- Invalid schedules still roll back the loan and its cash debit atomically.
+ v_bad_request=gen_random_uuid();v_failed=false;
+ begin perform public.jk_gateway(v_token,'jk_create_adhesion',jsonb_build_object('p_client_id',v_client,'p_loan',jsonb_build_object('principal_cents',20000,'rate_bps',3000,'fee_cents',0,'released_on',v_today,'dates',jsonb_build_array(v_today-1)),'p_request_id',v_bad_request));exception when others then
+  if position('As datas devem estar em ordem crescente' in sqlerrm)=0 then raise;end if;v_failed=true;
+ end;
+ if not v_failed then raise exception 'Aceitou vencimento inválido';end if;
+ if exists(select 1 from jsonb_array_elements(public.jk_gateway(v_token,'load_table','{"table":"jk_loans","from":0}')) as e where e->>'request_id'=v_bad_request::text) or (public.jk_gateway(v_token,'jk_cash_snapshot','{}')->'account'->>'balance_cents')::bigint<>v_initial then raise exception 'Falha deixou contrato ou débito parcial';end if;
+ -- Corrections may expose a deficit; manual withdrawals must still be blocked.
  v_entry=(public.jk_gateway(v_token,'jk_cash_record',jsonb_build_object('p_kind','contribution','p_amount_cents',1000,'p_request_id',gen_random_uuid()))#>>'{}')::uuid;
  v_loan=(public.jk_gateway(v_token,'jk_create_adhesion',jsonb_build_object('p_client_id',v_client,'p_loan',jsonb_build_object('principal_cents',1000,'rate_bps',0,'fee_cents',0,'released_on',v_today,'dates',jsonb_build_array(v_today+7)),'p_request_id',gen_random_uuid()))#>>'{}')::uuid;
  if v_initial>0 then v_withdrawal=(public.jk_gateway(v_token,'jk_cash_record',jsonb_build_object('p_kind','withdrawal','p_amount_cents',v_initial,'p_request_id',gen_random_uuid()))#>>'{}')::uuid;end if;
@@ -108,4 +136,4 @@ do $$begin
 end $$;
 reset role;
 rollback;
-select 'passed: real anon gateway, initial balance and contributions, atomic principal debit, partial receipts, partner payouts, idempotency, all reversals, cancellation, insufficient funds, deficits, statement reconciliation and RLS' as cash_checks;
+select 'passed: real anon gateway, initial balance and contributions, atomic principal debit, partial receipts, partner payouts, idempotency, all reversals, cancellation, loans with insufficient/negative cash, invalid-loan rollback, deficits, statement reconciliation and RLS' as cash_checks;
