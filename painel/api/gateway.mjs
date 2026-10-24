@@ -1,3 +1,4 @@
+import {dispatchPush} from '../server/push.mjs';
 import {lookupCEP} from '../server/cep.mjs';
 const actions=new Set(['lookup_cep','jk_cash_snapshot','jk_cash_record','jk_cash_reverse','load_table','jk_save_client','jk_create_adhesion','jk_record_payment','jk_reverse_payment','jk_change_loan','jk_save_preferences','jk_society_configure','jk_society_adjust_split','jk_society_record_payout','jk_society_reverse_payout']);
 // Every deployment, alias and API route is protected by Vercel Authentication.
@@ -18,6 +19,7 @@ export default async function handler(req,res){
  const upstream=await fetch(url+'/rest/v1/rpc/jk_gateway',{method:'POST',headers:{'Content-Type':'application/json',apikey:key},body:JSON.stringify({p_token:token,p_action:body.action,p_args:body.args}),signal:AbortSignal.timeout(25000)});
  const data=await upstream.json();
  if(!upstream.ok){const error=data.message||'Não foi possível concluir a operação.';console.error('JK gateway operation failed',{action:body.action,status:upstream.status,code:data.code});return res.status(upstream.status===403?403:400).json({error});}
+ if(!['load_table','jk_cash_snapshot','jk_save_preferences'].includes(body.action)){try{await dispatchPush({prepare:true});}catch(error){console.error('JK push dispatch deferred',{name:error.name});}}
  return res.status(200).json({data});
  }catch(error){console.error('JK gateway request failed',{name:error.name});return res.status(502).json({error:'A conexão com o banco falhou. Tente novamente.'});}
 }

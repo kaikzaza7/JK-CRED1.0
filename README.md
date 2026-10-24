@@ -95,3 +95,15 @@ Ao completar os 8 dígitos do CEP no cadastro ou na nova adesão, o painel consu
 A consulta passa por `lookup_cep` no gateway protegido da própria aplicação, mantendo a política de conexão do navegador. Apenas o CEP é enviado ao endereço fixo do ViaCEP; dados do cliente e credenciais internas não são encaminhados. O serviço tem timeout e valida a resposta. O navegador agrupa a digitação, reutiliza consultas bem-sucedidas e descarta respostas de um CEP anterior ou de um formulário já fechado. Alterações manuais feitas durante a consulta são preservadas. O envio do cadastro aguarda a consulta em andamento antes de montar os dados salvos e continua com os dados manuais em caso de falha.
 
 A rua, bairro, cidade e UF retornados seguem o fluxo normal de gravação no banco. Nenhum cadastro existente é consultado ou alterado automaticamente ao abrir sua edição. Testes em `tests/cep.test.mjs` e `tests/gateway.test.mjs` verificam formato, CEP inexistente, falhas, CEP geral e ausência de dados/segredos na requisição externa.
+
+## Notificações administrativas (Web Push)
+
+Configurações → Notificações no celular: ativação individual por aparelho, nome, categorias, teste, desativação e histórico de 60 eventos. iPhone exige iOS 16.4+ e instalação na Tela de Início; Android depende de navegador compatível. O service worker não armazena páginas/dados financeiros offline. A proteção da Vercel continua em todos os endereços.
+
+Lembretes de parcelas: 2 dias antes, amanhã, hoje e atrasos de 1, 3 e 7 dias; nome completo, número, saldo, data e contrato. Quitação, cancelamento e alteração de data são revalidados antes do envio. O clique abre o calendário na data. Empréstimos/recebimentos citam o cliente; aportes/repasses citam o sócio indicado. Aportes sem sócio são identificados como tal. Pagamentos são registros administrativos, sem confirmação bancária automática.
+
+A outbox `jk_private.push_events` é transacional. `push_devices` e `push_deliveries` são privadas, com RLS e nenhum acesso direto de anon/authenticated. A RPC `jk_push_gateway` valida segredo de servidor e administrador. O histórico não expõe assinaturas. Endpoints Web Push são limitados aos provedores suportados, com validação das chaves no servidor.
+
+Variáveis de produção: `JK_VAPID_PUBLIC_KEY`, `JK_VAPID_PRIVATE_KEY`, `CRON_SECRET`. Não rotacionar VAPID sem tratar assinaturas existentes. `vercel.json` agenda `/api/notification-cron` às 11h UTC (manhã brasileira; Hobby pode variar dentro da hora). O endpoint exige Bearer CRON_SECRET. Movimentações tentam despachar após o registro; o cron também processa a fila. Entrega depende de rede, provedor, permissões e aparelho; não comprova leitura. A fila usa unicidade por evento/aparelho, locks, leases, até 5 tentativas e desativação de endpoints 404/410. Tags estáveis reduzem duplicações em reentregas.
+
+Verificação: `node --test tests/*.test.mjs` e `tests/notifications.database.sql` (rollback sob o papel anon, sem push real). Conferência no navegador: configurações, temas, celular, payload do service worker e clique. O aparelho físico deve ser confirmado pelo administrador com “Enviar teste”.
