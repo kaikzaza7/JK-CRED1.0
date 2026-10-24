@@ -1,4 +1,5 @@
-const actions=new Set(['jk_cash_snapshot','jk_cash_record','jk_cash_reverse','load_table','jk_save_client','jk_create_adhesion','jk_record_payment','jk_reverse_payment','jk_change_loan','jk_save_preferences','jk_society_configure','jk_society_adjust_split','jk_society_record_payout','jk_society_reverse_payout']);
+import {lookupCEP} from '../server/cep.mjs';
+const actions=new Set(['lookup_cep','jk_cash_snapshot','jk_cash_record','jk_cash_reverse','load_table','jk_save_client','jk_create_adhesion','jk_record_payment','jk_reverse_payment','jk_change_loan','jk_save_preferences','jk_society_configure','jk_society_adjust_split','jk_society_record_payout','jk_society_reverse_payout']);
 // Every deployment, alias and API route is protected by Vercel Authentication.
 // Deployment Protection must stay enabled for ALL deployments, including production.
 export default async function handler(req,res){
@@ -13,6 +14,7 @@ export default async function handler(req,res){
  let body=req.body;
  try{if(typeof body==='string')body=JSON.parse(body);if(!body||!actions.has(body.action)||!body.args||typeof body.args!=='object'||Array.isArray(body.args))return res.status(400).json({error:'Operação inválida.'});
  if(JSON.stringify(body).length>150000)return res.status(413).json({error:'Solicitação muito grande.'});
+ if(body.action==='lookup_cep'){const result=await lookupCEP(body.args.cep);return res.status(result.status).json(result.data?{data:result.data}:{error:result.error});}
  const upstream=await fetch(url+'/rest/v1/rpc/jk_gateway',{method:'POST',headers:{'Content-Type':'application/json',apikey:key},body:JSON.stringify({p_token:token,p_action:body.action,p_args:body.args}),signal:AbortSignal.timeout(25000)});
  const data=await upstream.json();
  if(!upstream.ok){const error=data.message||'Não foi possível concluir a operação.';console.error('JK gateway operation failed',{action:body.action,status:upstream.status,code:data.code});return res.status(upstream.status===403?403:400).json({error});}

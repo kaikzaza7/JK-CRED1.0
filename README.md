@@ -86,3 +86,12 @@ A administração também pode autorizar uma inclusão pontual dos empréstimos 
 O formulário de adesão mostra o saldo previsto após liberar o principal e permite confirmar o cadastro mesmo quando esse saldo é negativo. A permissão vale também para um novo cliente e é aplicada no banco; não exige aporte nem confirmação adicional.
 
 A permissão de empréstimos com caixa negativo está em `database/20261024173443_allow_loans_with_negative_cash.sql`. O teste de banco cobre cliente novo em déficit, repetição idempotente, recebimento parcial no negativo, liberação acima do saldo, aumento de déficit já existente e rollback de contrato com datas inválidas.
+
+
+## Busca de endereço por CEP
+
+Ao completar os 8 dígitos do CEP no cadastro ou na nova adesão, o painel consulta o ViaCEP e preenche rua, bairro, cidade e UF. Número e complemento permanecem manuais. O botão Buscar permite repetir a consulta. Um CEP geral pode informar somente cidade/UF; CEP inexistente, falha ou demora do serviço não impedem preencher o endereço manualmente.
+
+A consulta passa por `lookup_cep` no gateway protegido da própria aplicação, mantendo a política de conexão do navegador. Apenas o CEP é enviado ao endereço fixo do ViaCEP; dados do cliente e credenciais internas não são encaminhados. O serviço tem timeout e valida a resposta. O navegador agrupa a digitação, reutiliza consultas bem-sucedidas e descarta respostas de um CEP anterior ou de um formulário já fechado. Alterações manuais feitas durante a consulta são preservadas. O envio do cadastro aguarda a consulta em andamento antes de montar os dados salvos e continua com os dados manuais em caso de falha.
+
+A rua, bairro, cidade e UF retornados seguem o fluxo normal de gravação no banco. Nenhum cadastro existente é consultado ou alterado automaticamente ao abrir sua edição. Testes em `tests/cep.test.mjs` e `tests/gateway.test.mjs` verificam formato, CEP inexistente, falhas, CEP geral e ausência de dados/segredos na requisição externa.
