@@ -31,6 +31,11 @@ declare
 begin
  if current_user<>'anon' then raise exception 'Teste deve usar o papel da API';end if;
  v_snapshot=public.jk_gateway(v_token,'jk_cash_snapshot','{}');v_initial=(v_snapshot->'account'->>'balance_cents')::bigint;
+ -- Normalize an existing deficit only inside this rolled-back test transaction.
+ if v_initial<0 then
+  perform public.jk_gateway(v_token,'jk_cash_record',jsonb_build_object('p_kind','contribution','p_amount_cents',-v_initial,'p_notes','Recomposição temporária para teste','p_request_id',gen_random_uuid()));
+  v_snapshot=public.jk_gateway(v_token,'jk_cash_snapshot','{}');v_initial=0;
+ end if;
  v_kind=case when jsonb_array_length(v_snapshot->'entries')=0 then 'opening' else 'contribution' end;
  v_deposit_args=jsonb_build_object('p_kind',v_kind,'p_amount_cents',100000,'p_partner_id',1,'p_notes','Caixa temporário para teste','p_request_id',gen_random_uuid());
  v_entry=(public.jk_gateway(v_token,'jk_cash_record',v_deposit_args)#>>'{}')::uuid;
