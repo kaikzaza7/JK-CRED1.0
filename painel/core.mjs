@@ -59,35 +59,35 @@ Seu cadastro foi aprovado e sua adesão foi concluída com sucesso. 🎉
 A partir de agora, seu atendimento e acompanhamento financeiro já estão ativos em nosso sistema.
 
 Em caso de dúvidas, estamos à disposição.`;
-export const SIMULATION_TEMPLATE = `*JK CRED | SIMULAÇÃO PERSONALIZADA*
+export const SIMULATION_TEMPLATE = `📊 SIMULAÇÃO DE EMPRÉSTIMO 📊
 
-Olá, {nome}!
+Olá, {nome}
 
-Preparamos esta simulação para você avaliar com tranquilidade. Confira os valores e as datas de pagamento:
+Preparamos esta simulação para você avaliar os valores e as condições antes de confirmar sua adesão. 😊
 
-*VALOR SOLICITADO: {valor}*
+💰 Valor solicitado: {valor}
+📅 Data da simulação: {data_simulacao}
 
-*COMPOSIÇÃO DO VALOR TOTAL*
-Juros: {taxa}% sobre o valor solicitado ({juros})
-Acréscimo por parcela adicional: {acrescimo}
-Acréscimos de parcelamento: {extras} no total
+📊 Juros: {taxa}% ({juros})
+➕ Acréscimo por parcela adicional: {acrescimo}
+💵 Total de acréscimos: {extras}
 
-A primeira parcela não gera acréscimo. Os adicionais integram o valor total, dividido nas parcelas abaixo.
+{vencimentos}
 
-*PARCELAS E VENCIMENTOS*
-{parcelas}
+{retornos}
 
-*TOTAL A PAGAR: {total}*
-Encargo total: {efetiva}% sobre o valor solicitado, incluindo juros e acréscimos.
+💰 Total a pagar: {total}
+📈 Encargo total: {efetiva}% sobre o valor solicitado, incluindo juros e acréscimos.
 
-Simulação sujeita à confirmação. Os valores e vencimentos serão confirmados com você antes da adesão.
+A primeira parcela não gera acréscimo. Os adicionais integram o total e são distribuídos nas parcelas.
 
-Se estiver de acordo com os valores e vencimentos, responda a esta mensagem para conversarmos sobre os próximos passos.
+Esta é uma simulação. Os valores e vencimentos serão confirmados com você antes da adesão.
 
-*JK CRED*
-Seu crédito, nosso compromisso.`;
+Se estiver de acordo com as condições, responda a esta mensagem para continuarmos seu atendimento.
+
+Em caso de dúvidas, estamos à disposição.`;
 export function messageFor(client,loan,installments,template=DEFAULT_TEMPLATE,simulation=false) {
- const params={nome:client.name||'Cliente',contrato:loan.protocol||'Simulação',situacao:loan.status==='cancelled'?'Cancelado':'Ativado',valor:money(loan.principal_cents),data:dateLabel(loan.released_on),taxa:(loan.rate_bps/100).toLocaleString('pt-BR'),juros:money(loan.interest_cents),acrescimo:money(loan.fee_cents),extras:money(loan.fee_cents*(loan.count-1)),efetiva:((loan.total_cents-loan.principal_cents)/loan.principal_cents*100).toLocaleString('pt-BR',{maximumFractionDigits:2}),parcelas:installments.map((s,i)=>`${i+1}/${installments.length} - Vencimento: ${dateLabel(s.due_on)} - Valor: ${money(s.amount_cents)}`).join('\n'),vencimentos:installments.map(s=>`📌 Vencimento: ${dateLabel(s.due_on)}`).join('\n'),retornos:installments.map((s,i)=>`💱 ${i+1}x Retorno ${money(s.amount_cents)}`).join('\n'),total:money(loan.total_cents)};
+ const params={nome:client.name||'Cliente',contrato:loan.protocol||'Simulação',situacao:loan.status==='cancelled'?'Cancelado':'Ativado',valor:money(loan.principal_cents),data:dateLabel(loan.released_on),data_simulacao:dateLabel(today()),taxa:(loan.rate_bps/100).toLocaleString('pt-BR'),juros:money(loan.interest_cents),acrescimo:money(loan.fee_cents),extras:money(loan.fee_cents*(loan.count-1)),efetiva:((loan.total_cents-loan.principal_cents)/loan.principal_cents*100).toLocaleString('pt-BR',{maximumFractionDigits:2}),parcelas:installments.map((s,i)=>`${i+1}/${installments.length} - Vencimento: ${dateLabel(s.due_on)} - Valor: ${money(s.amount_cents)}`).join('\n'),vencimentos:installments.map(s=>`📌 Vencimento: ${dateLabel(s.due_on)}`).join('\n'),retornos:installments.map((s,i)=>`💱 ${i+1}x Retorno ${money(s.amount_cents)}`).join('\n'),total:money(loan.total_cents)};
  const source=simulation?SIMULATION_TEMPLATE:(template||DEFAULT_TEMPLATE);
  return source.replace(/\{(\w+)\}/g,(match,key)=>params[key]??match);
 }
