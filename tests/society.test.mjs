@@ -31,3 +31,7 @@ test('an adjusted base reserves the remaining amount, and missing splits never i
 test('an empty society retains both partner profiles without fabricating balances',()=>{
  const data=societyLedger({});assert.deepEqual(data.profiles.map(partner=>[partner.name,partner.earned,partner.paid,partner.available]),[['Juan Kelvin',0,0,0],['Kaik Andrade',0,0,0]]);assert.equal(data.balance,0);
 });
+test('customized splits remain identifiable without requiring an adjustment reason',()=>{
+ const source=fixture();source.splits[0]={...source.splits[0],version:2,adjustment_reason:''};
+ const data=societyLedger(source);assert.equal(data.rows.find(row=>row.receipt.id==='r1').status,'adjusted');assert.equal(data.rows.find(row=>row.receipt.id==='r2').status,'allocated');assert.equal(data.profiles[0].earned,5267);
+});

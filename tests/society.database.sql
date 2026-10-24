@@ -7,6 +7,14 @@ begin
  select actor_id into v_actor from jk_private.server_config where id;
  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_actor,'role','authenticated')::text,true);
  v_initial=jk_private.society_balance(1::smallint);
+ select version into v_version from public.jk_society_settings where id;
+ v_version=jk_private.society_configure(9000,v_version);
+ if not exists(select 1 from public.jk_society_partners where id=1 and share_bps=9000) or not exists(select 1 from public.jk_society_partners where id=2 and share_bps=1000) then raise exception 'Divisão escolhida 90/10 não foi salva';end if;
+ v_version=jk_private.society_configure(0,v_version);
+ if not exists(select 1 from public.jk_society_partners where id=2 and share_bps=10000) then raise exception 'Divisão 0/100 não foi salva';end if;
+ v_version=jk_private.society_configure(10000,v_version);
+ if not exists(select 1 from public.jk_society_partners where id=1 and share_bps=10000) then raise exception 'Divisão 100/0 não foi salva';end if;
+ v_version=jk_private.society_configure(5000,v_version);
  loop
   v_raw=lpad(trunc(random()*999999999)::bigint::text,9,'0');v_sum=0;
   for i in 1..9 loop v_sum=v_sum+substr(v_raw,i,1)::integer*(11-i);end loop;
@@ -29,9 +37,12 @@ begin
  if (select share1_bps from public.jk_society_splits where receipt_id=v_r1)<>5000 then raise exception 'Alteração da regra reescreveu histórico';end if;
  v_r2=jk_private.record_payment(v_item,6000,v_today,'pix','TEMPORÁRIO',gen_random_uuid());
  if not exists(select 1 from public.jk_society_splits where receipt_id=v_r2 and share1_bps=6000 and partner1_cents=3600 and partner2_cents=2400) then raise exception 'Nova regra não aplicada ao recebimento';end if;
- perform jk_private.society_adjust_split(v_r1,2000,5000,'Ajuste temporário para teste',1);
- if not exists(select 1 from public.jk_society_splits where receipt_id=v_r1 and base_cents=2000 and partner1_cents=1000 and partner2_cents=1000 and version=2) then raise exception 'Ajuste individual falhou';end if;
- v_failed=false;begin perform jk_private.society_adjust_split(v_r1,5000,5000,'Teste inválido',2);exception when others then v_failed=true;end;if not v_failed then raise exception 'Aceitou base acima do recebimento';end if;
+ perform jk_private.society_adjust_split(v_r1,2000,8000,null,1);
+ if not exists(select 1 from public.jk_society_splits where receipt_id=v_r1 and base_cents=2000 and share1_bps=8000 and partner1_cents=1600 and partner2_cents=400 and version=2 and adjustment_reason='' ) then raise exception 'Ajuste sem justificativa falhou';end if;
+ perform jk_private.society_adjust_split(v_r1,2000,5000,'',2);
+ if not exists(select 1 from public.jk_society_splits where receipt_id=v_r1 and version=3 and adjustment_reason='') then raise exception 'Ajuste com justificativa vazia falhou';end if;
+ if not exists(select 1 from public.jk_events where action='Divisão societária ajustada' and entity_id=(select id from public.jk_society_splits where receipt_id=v_r1) and details->'before'->>'version'='2' and details->'after'->>'version'='3') then raise exception 'Ajuste sem motivo perdeu histórico';end if;
+ v_failed=false;begin perform jk_private.society_adjust_split(v_r1,5000,5000,null,3);exception when others then v_failed=true;end;if not v_failed then raise exception 'Aceitou base acima do recebimento';end if;
  v_failed=false;begin perform jk_private.society_adjust_split(v_r1,2000,5000,'Teste inválido',1);exception when others then v_failed=true;end;if not v_failed then raise exception 'Aceitou versão antiga do ajuste';end if;
  v_failed=false;begin perform jk_private.society_configure(10001,v_version);exception when others then v_failed=true;end;if not v_failed then raise exception 'Aceitou porcentagem inválida';end if;
  v_failed=false;begin perform jk_private.society_configure(5000,v_version-1);exception when others then v_failed=true;end;if not v_failed then raise exception 'Aceitou regra antiga';end if;
@@ -66,4 +77,4 @@ do $$ declare v_failed boolean=false; begin
 end $$;
 reset role;
 rollback;
-select 'passed: rounding, automatic allocation, partial receipts, rule snapshots, individual adjustments, idempotency, balance limits, reversals, compensation and RLS' as society_checks;
+select 'passed: chosen percentages including 90/10 and 0/100, adjustments without justification, audit history, rounding, automatic allocation, partial receipts, rule snapshots, idempotency, balance limits, reversals, compensation and RLS' as society_checks;
