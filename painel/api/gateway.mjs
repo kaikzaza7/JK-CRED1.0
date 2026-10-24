@@ -1,4 +1,4 @@
-const actions=new Set(['load_table','jk_save_client','jk_create_adhesion','jk_record_payment','jk_reverse_payment','jk_change_loan','jk_save_preferences']);
+const actions=new Set(['load_table','jk_save_client','jk_create_adhesion','jk_record_payment','jk_reverse_payment','jk_change_loan','jk_save_preferences','jk_society_configure','jk_society_adjust_split','jk_society_record_payout','jk_society_reverse_payout']);
 // Every deployment, alias and API route is protected by Vercel Authentication.
 // Deployment Protection must stay enabled for ALL deployments, including production.
 export default async function handler(req,res){

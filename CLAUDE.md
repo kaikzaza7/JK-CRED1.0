@@ -13,3 +13,5 @@ This repository is now a PRIVATE administration panel. There is no customer port
 - UI and messages: pt-BR. Dates: America/Sao_Paulo. Phones: +55 + DDD + number.
 - Preserve the supplied JK CRED brand (gold, silver/white, black) and responsive accessibility.
 - Run `node --test tests/*.test.mjs` and inspect affected browser flows before publishing.
+
+- Repasse societário has exactly two partner profiles: Juan Kelvin (1) and Kaik Andrade (2). Receipt splits snapshot the rule at registration; never recompute past splits when changing the default. Payouts are manual records, not bank transfers. Reversed receipts/payouts stay in history and update partner balances; negative balances must remain visible as compensation due.
