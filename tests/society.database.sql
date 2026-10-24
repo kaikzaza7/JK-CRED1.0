@@ -6,6 +6,7 @@ declare
 begin
  select actor_id into v_actor from jk_private.server_config where id;
  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_actor,'role','authenticated')::text,true);
+ perform jk_private.cash_record('contribution',1000000,null,'Fundo temporário de teste',gen_random_uuid());
  v_initial=jk_private.society_balance(1::smallint);
  select version into v_version from public.jk_society_settings where id;
  v_version=jk_private.society_configure(9000,v_version);

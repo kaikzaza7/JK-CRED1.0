@@ -41,6 +41,7 @@ begin
  v_failed=false;
  begin perform public.jk_gateway(v_token,'jk_society_configure',jsonb_build_object('p_share1_bps',5000,'p_expected_version',v_version-1));exception when others then v_failed=true;end;
  if not v_failed then raise exception 'Gateway aceitou versão antiga';end if;
+ perform public.jk_gateway(v_token,'jk_cash_record',jsonb_build_object('p_kind','contribution','p_amount_cents',1000000,'p_notes','Fundo temporário de teste','p_request_id',gen_random_uuid()));
  v_loan=(public.jk_gateway(v_token,'jk_create_adhesion',jsonb_build_object('p_client',current_setting('jk_test.client')::jsonb,'p_loan',jsonb_build_object('principal_cents',20000,'rate_bps',3000,'fee_cents',1000,'released_on',v_today,'dates',jsonb_build_array(v_today+7,v_today+22)),'p_request_id',gen_random_uuid()))#>>'{}')::uuid;
  select (row->>'id')::uuid into v_item from jsonb_array_elements(public.jk_gateway(v_token,'load_table','{"table":"jk_installments","from":0}')) as row where row->>'loan_id'=v_loan::text and row->>'number'='1';
  if v_item is null then raise exception 'Parcela do contrato de teste não foi encontrada';end if;

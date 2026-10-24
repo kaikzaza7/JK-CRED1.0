@@ -65,3 +65,18 @@ Migrações: `database/20261024145740_society_repasses.sql`, `database/202610241
 A validação da soma das porcentagens é imediata, ao fim do único UPDATE que atualiza os dois sócios dentro da operação autorizada. O gatilho continua como `SECURITY INVOKER`: não há novas permissões de tabela nem acesso direto para `anon`. O gatilho adiado anterior tentava ler a tabela depois que o gateway retornava ao papel `anon`, causando `permission denied`.
 
 O teste transacional `tests/society.gateway.database.sql` usa `SET LOCAL ROLE anon` e chama o mesmo `public.jk_gateway` utilizado pela API, incluindo a etapa de validação após o retorno. Verifica gravação e releitura de 90/10, recebimento, ajuste sem justificativa, repasse, estornos e bloqueios de escrita direta e token inválido. Um token aleatório existe apenas na transação de teste; o rollback restaura a configuração e remove todos os lançamentos.
+
+
+## Fundo de caixa
+
+A aba `#/cash` registra o dinheiro disponível. O controle começa em zero, sem reaplicar os contratos e recebimentos anteriores à instalação. A administração informa o saldo disponível hoje em **Definir saldo inicial**; novos aportes podem identificar Juan Kelvin, Kaik Andrade ou outra origem e não mudam a participação societária.
+
+Cada nova adesão debita apenas o principal liberado, na mesma transação do cliente, contrato e parcelas. Recebimentos posteriores à instalação, inclusive parciais e de contratos antigos, creditam o caixa. Repasses societários debitam o caixa e o saldo do sócio. Outras despesas e retiradas podem ser registradas como saídas manuais. Empréstimos, repasses e saídas manuais são bloqueados quando não há saldo disponível, com verificação no banco sob bloqueio da conta para impedir gasto concorrente do mesmo saldo.
+
+Cancelamentos e estornos criam movimentos no sentido contrário quando a operação original tem lançamento no caixa. Operações anteriores ao início do controle não geram devoluções fictícias. Estornos preservam o extrato e podem revelar saldo negativo; esse déficit fica visível e impede novas saídas até ser reposto. Somente movimentos manuais podem ser estornados pela aba de caixa; contratos, recebimentos e repasses são corrigidos em suas telas de origem.
+
+A dashboard inclui saldo disponível, entradas e saídas do mês, evolução do saldo após as últimas 20 movimentações e fluxo de caixa mensal. Os gráficos anteriores da carteira continuam disponíveis. O extrato tem filtros, busca e exportação CSV, com o saldo após cada lançamento calculado sobre todo o histórico. A atualização automática preserva os filtros e o foco.
+
+`jk_cash_account` mantém o saldo e `jk_cash_entries` guarda o extrato em centavos inteiros e sequência monotônica. A leitura de saldo e lançamentos usa uma única consulta em `jk_cash_snapshot`, evitando versões diferentes na tela. A data de caixa corresponde ao registro da movimentação no fuso `America/Sao_Paulo`; datas financeiras retroativas continuam nos contratos e recebimentos originais. As duas tabelas têm RLS, escrita direta negada a `anon`/`authenticated` e funções privadas `SECURITY INVOKER`, acessíveis somente pelo gateway autorizado. Os gatilhos são imediatos; o bloqueio segue a ordem configuração societária → conta de caixa.
+
+Migração: `database/20261024170133_cash_fund_and_automatic_movements.sql`. Testes: `tests/cash.test.mjs` e `tests/cash.database.sql`, além dos testes societários atualizados. O teste SQL usa o papel real `anon` e o gateway público, confirma idempotência, saldo insuficiente, estornos, cancelamento, conciliação e RLS e faz rollback de todos os dados de teste. Os lançamentos são registros de controle e não transferências bancárias.
