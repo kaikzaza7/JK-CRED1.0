@@ -42,6 +42,9 @@
     },
     "api/notification-cron.mjs": {
       "maxDuration": 60
+    },
+    "api/pool.mjs": {
+      "maxDuration": 30
     }
   },
   "crons": [
