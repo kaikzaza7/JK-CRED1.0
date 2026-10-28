@@ -1,5 +1,5 @@
 import {newMatch,playShot} from '../pool/engine.mjs';
-export const POOL_ACTIONS=new Set(['snapshot','enter','leave','reset','shoot']);
+export const POOL_ACTIONS=new Set(['snapshot','enter','leave','reset','shoot','aim']);
 export async function poolRPC(action,args={}){
  const {JK_SUPABASE_URL:url,JK_SUPABASE_KEY:key,JK_GATEWAY_TOKEN:token}=process.env;
  if(!url||!key||!token)throw new Error('A mesa está indisponível neste ambiente.');
@@ -12,12 +12,14 @@ export function validatePoolRequest(body){
  if(a.player_token!==undefined&&!/^[a-f0-9]{64}$/.test(a.player_token))throw new Error('Identificação do jogador inválida.');
  if(body.action!=='snapshot'&&!a.player_token)throw new Error('Entre na mesa para jogar.');
  if(body.action==='enter'&&![1,2].includes(a.partner_id))throw new Error('Escolha Juan Kelvin ou Kaik Andrade.');
+ if(body.action==='aim'&&(!Number.isSafeInteger(a.version)||a.version<1||!Number.isFinite(a.angle)||Math.abs(a.angle)>Math.PI*2||!Number.isFinite(a.power)||a.power<.05||a.power>1||!Number.isSafeInteger(a.seq)||a.seq<1||!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(a.source_id||'')))throw new Error('Mira inválida.');
  if(body.action==='shoot'&&(!Number.isSafeInteger(a.version)||a.version<1||!Number.isFinite(a.angle)||Math.abs(a.angle)>Math.PI*2||!Number.isFinite(a.power)||a.power<.05||a.power>1||!/^[-a-f0-9]{36}$/.test(a.move_id||'')))throw new Error('Confira a direção e a força da tacada.');
 }
 export async function performPoolAction(body,rpc=poolRPC){
  validatePoolRequest(body);const a=body.args;
  const credentials={player_token:a.player_token};
  if(body.action==='snapshot')return rpc('snapshot',credentials);
+ if(body.action==='aim')return rpc('aim',{...credentials,version:a.version,angle:a.angle,power:a.power,source_id:a.source_id,seq:a.seq});
  if(body.action==='enter')return rpc('enter',{...credentials,partner_id:a.partner_id,initial:newMatch()});
  if(body.action==='leave')return rpc('leave',credentials);
  if(body.action==='reset')return rpc('reset',{...credentials,initial:newMatch()});

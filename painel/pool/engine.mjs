@@ -3,7 +3,8 @@ export const TABLE={width:900,height:450,radius:10,pocketRadius:25};
 export const POCKETS=[[0,0],[450,0],[900,0],[0,450],[450,450],[900,450]];
 export const DT=1/180;
 export const MAX_STEPS=1800;
-const STOP=3,DRAG=205,RESTITUTION=.97,RAIL=.85;
+export const SHOT_PHYSICS={stop:3,drag:205,restitution:.97,rail:.85,baseSpeed:160,powerSpeed:1050};
+const {stop:STOP,drag:DRAG,restitution:RESTITUTION,rail:RAIL}=SHOT_PHYSICS;
 export function initialBalls(){
  const balls=[{id:0,x:216,y:225,potted:false}];let id=1;
  for(let row=0;row<5;row++)for(let col=0;col<=row;col++)balls.push({id:id++,x:612+row*Math.sqrt(3)*10.2,y:225+(2*col-row)*10.2,potted:false});
@@ -20,7 +21,7 @@ function restoreCue(balls){
 }
 export function simulateShot(input,angle,power,{capture=false}={}){
  if(!validBalls(input)||input.find(b=>b.id===0)?.potted||!Number.isFinite(angle)||!Number.isFinite(power)||power<.05||power>1)throw new Error('Tacada inválida.');
- const balls=input.map(b=>({...b,vx:0,vy:0}));const cue=balls.find(b=>b.id===0);const speed=160+1050*power;
+ const balls=input.map(b=>({...b,vx:0,vy:0}));const cue=balls.find(b=>b.id===0);const speed=SHOT_PHYSICS.baseSpeed+SHOT_PHYSICS.powerSpeed*power;
  cue.vx=Math.cos(angle)*speed;cue.vy=Math.sin(angle)*speed;const pocketed=[],frames=[];let step=0;
  const frame=()=>({t:Math.round(step*DT*1000),balls:balls.map(({id,x,y,potted})=>({id,x,y,potted}))});
  if(capture)frames.push(frame());
